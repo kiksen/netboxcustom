@@ -1,0 +1,25 @@
+[project]
+name = "netboxcustom"
+version = "0.1.0"
+description = "A pynetbox wrapper and helper functions for netbox."
+authors = [{ name = "Christian Knoblauch", email = "christian.knoblauch@gmx.de" }]
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pynetbox",
+    "jmespath",
+    "httpx",
+    "rich>=14.3.3",
+    "pytest>=8.3.5",
+    "pytest-asyncio",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["netboxcustom"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
+asyncio_default_test_loop_scope = "session"
