@@ -2,7 +2,7 @@
 name = "netboxcustom"
 version = "0.1.0"
 description = "A pynetbox wrapper and helper functions for netbox."
-authors = [{ name = "Christian Knoblauch", email = "christian.knoblauch@gmx.de" }]
+authors = [{ name = "Christian Knoblauch" }]
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
