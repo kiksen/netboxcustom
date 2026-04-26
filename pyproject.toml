@@ -1,6 +1,6 @@
 [project]
 name = "netboxcustom"
-version = "0.1.0"
+version = "0.1.1"
 description = "A pynetbox wrapper and helper functions for netbox."
 authors = [{ name = "Christian Knoblauch" }]
 readme = "README.md"
