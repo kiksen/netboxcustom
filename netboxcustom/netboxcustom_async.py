@@ -1,5 +1,4 @@
 import ipaddress
-import os
 from typing import Any
 
 import httpx
@@ -17,37 +16,16 @@ from netboxcustom.netboxcustom import (
 )
 
 
-def _build_base_url_and_token_type(
-    endpoint: str | None,
-    token: str | None,
-) -> tuple[str, str]:
-    if endpoint is None:
-        endpoint = os.environ.get("NETBOX_ENDPOINT", "")
-    if token is None:
-        token = os.environ.get("NETBOX_TOKEN", "")
-    token_type = "Bearer" if (token or "").startswith("nbt_") else "Token"
-    base_url = (endpoint or "").rstrip("/")
-    return base_url, token_type
-
-
 class NetboxAsyncClient:
     """
-    Async NetBox client with explicit lifecycle management.
+    Async NetBox client.
 
-    Nutzung mit Context Manager (empfohlen):
+    Nutzung:
         async with NetboxAsyncClient(endpoint, token) as nb:
             result = await nb.get_site_list()
-
-    Nutzung manuell:
-        nb = NetboxAsyncClient(endpoint, token)
-        await nb.connect()
-        try:
-            result = await nb.get_site_list()
-        finally:
-            await nb.aclose()
     """
 
-    def __init__(self, endpoint: str | None = None, token: str | None = None) -> None:
+    def __init__(self, endpoint: str, token: str) -> None:
         self._endpoint = endpoint
         self._token = token
         self._client: httpx.AsyncClient | None = None
@@ -56,38 +34,29 @@ class NetboxAsyncClient:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def connect(self) -> "NetboxAsyncClient":
-        """Öffnet den httpx-Client."""
-        base_url, token_type = _build_base_url_and_token_type(
-            self._endpoint, self._token
-        )
-        token = self._token or os.environ.get("NETBOX_TOKEN", "")
+    async def __aenter__(self) -> "NetboxAsyncClient":
+
+        token_type = "Bearer" if self._token.startswith("nbt_") else "Token"
+
         self._client = httpx.AsyncClient(
-            base_url=base_url,
+            base_url=self._endpoint.rstrip("/"),
             headers={
-                "Authorization": f"{token_type} {token}",
+                "Authorization": f"{token_type} {self._token}",
                 "Content-Type": "application/json",
                 "Accept": "application/json",
             },
         )
         return self
 
-    async def aclose(self) -> None:
-        """Schließt den httpx-Client."""
+    async def __aexit__(self, *args: Any) -> None:
         if self._client is not None:
             await self._client.aclose()
             self._client = None
 
-    async def __aenter__(self) -> "NetboxAsyncClient":
-        return await self.connect()
-
-    async def __aexit__(self, *args: Any) -> None:
-        await self.aclose()
-
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
             raise RuntimeError(
-                "connect() oder 'async with' muss vor der Verwendung aufgerufen werden."
+                "'async with NetboxAsyncClient(…)' muss vor der Verwendung aufgerufen werden."
             )
         return self._client
 
@@ -95,13 +64,15 @@ class NetboxAsyncClient:
     # Internal helpers
     # ------------------------------------------------------------------
 
-    async def _fetch_all(self, path: str, params: dict | None = None) -> list[dict]:
+    async def _fetch_all(
+        self, path: str, params: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]] | None:
         """
         Lädt alle Seiten eines NetBox-Listenendpunkts (Pagination).
         path: z.B. "dcim/sites/" (ohne führendes /api/)
         """
         client = self._get_client()
-        results: list[dict] = []
+        results: list[dict[str, Any]] = []
         url: str | None = f"/api/{path}"
         current_params = params or {}
 
@@ -288,9 +259,7 @@ class NetboxAsyncClient:
         client = self._get_client()
 
         try:
-            resp = await client.post(
-                f"/api/dcim/devices/{device['id']}/render-config/"
-            )
+            resp = await client.post(f"/api/dcim/devices/{device['id']}/render-config/")
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
             raise NetboxCustomLookupError(str(e))
@@ -305,7 +274,7 @@ class NetboxAsyncClient:
 
     async def createDevices(
         self,
-        device_info_list: list[dict] | None = None,
+        device_info_list: list[dict[str, Any]] | None = None,
         site_slug: str = "",
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
@@ -386,7 +355,7 @@ class NetboxAsyncClient:
             )
             if not device_types:
                 raise NetboxCustomCreateDeviceError(
-                    f"Device_Type \"{dev['device_type']}\" not found in netbox, please create it before using it."
+                    f'Device_Type "{dev["device_type"]}" not found in netbox, please create it before using it.'
                 )
             dev["device_type"] = device_types[0]["id"]
 
