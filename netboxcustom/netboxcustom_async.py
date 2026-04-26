@@ -1,4 +1,6 @@
+import asyncio
 import ipaddress
+import os
 from typing import Any
 
 import httpx
@@ -70,6 +72,8 @@ class NetboxAsyncClient:
         """
         Lädt alle Seiten eines NetBox-Listenendpunkts (Pagination).
         path: z.B. "dcim/sites/" (ohne führendes /api/)
+
+        Returns an empty list if nothing was found!
         """
         client = self._get_client()
         results: list[dict[str, Any]] = []
@@ -149,27 +153,14 @@ class NetboxAsyncClient:
 
     async def get_site_list(
         self,
-        site_slug: list[str] | None = None,
+        params: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
-        if not site_slug:
-            site_slug = []
-
-        client = self._get_client()
-
-        if len(site_slug) == 0:
-            raw_sites = await self._fetch_all("dcim/sites/")
-        else:
-            # NetBox akzeptiert mehrfache slug-Parameter
-            raw_sites = []
-            url: str | None = "/api/dcim/sites/"
-            params = [("slug", s) for s in site_slug]
-            while url:
-                resp = await client.get(url, params=params)
-                resp.raise_for_status()
-                data = resp.json()
-                raw_sites.extend(data.get("results", []))
-                url = data.get("next")
-                params = []
+        """
+        params: e.g.
+            sites = await nb.get_site_list({"slug": "bonn"})
+            sites = await nb.get_site_list({"tenant": "mycompany"})
+        """
+        raw_sites = await self._fetch_all("dcim/sites/", params)
 
         result_list: list[dict[str, Any]] = []
         for site in raw_sites:
@@ -196,8 +187,14 @@ class NetboxAsyncClient:
     async def lookup_site_by_ip(
         self,
         device_ip: str = "0.0.0.0",
-        api_filter: dict | None = None,
+        api_filter: dict[str, Any] | None = None,
     ) -> str:
+        """
+        example:
+            sites = await nb.lookup_site_by_ip(
+            "192.168.178.4", {"role": "network-management"}
+        )
+        """
         params: dict[str, Any] = {"contains": device_ip}
         if api_filter:
             params.update(api_filter)

@@ -1,15 +1,12 @@
 import asyncio
+import os
 
-from netboxcustom import aio
+from netboxcustom.netboxcustom_async import NetboxAsyncClient
 
 
 async def main():
-
-    client = await aio.nb_login()
-
-    site_list = await aio.get_site_list()
-
-    site = await aio.lookup_site_by_ip("192.168.178.33")
+    NETBOX_TOKEN = os.environ.get("NETBOX_TOKEN", "")
+    NETBOX_ENDPOINT = os.environ.get("NETBOX_ENDPOINT", "")
 
     device_list = [
         {
@@ -26,11 +23,16 @@ async def main():
         },
     ]
 
-    await aio.createDevices(device_list, "bonn", "access", None, True)
+    async with NetboxAsyncClient(NETBOX_ENDPOINT, NETBOX_TOKEN) as nb:
+        sites = await nb.createDevices(device_list, "bonn", "access")
+        print(sites)
 
-    pass
+        pass
+    # await aio.createDevices(device_list, "bonn", "access", None, True)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+    pass
+    pass
     pass
