@@ -1,7 +1,9 @@
 import asyncio
 import os
 
-from netboxcustom.netboxcustom_async import NetboxAsyncClient
+from netboxcustom.netboxcustom_async import AsyncNetboxCustom
+
+#from netboxcustom.netboxcustom import NetboxCustom
 
 
 async def main():
@@ -12,27 +14,24 @@ async def main():
         {
             "name": "switch",
             "device_type": "C9200L-24P-4G",
-            "serial": "FOC-B-Horn",
+            "serial": "SERIAL-1",
             "slot": 1,
         },
         {
             "name": "switch",
             "device_type": "C9200L-24P-4G",
-            "serial": "FOC-C-Horn",
+            "serial": "SERIAL-2",
             "slot": 3,
         },
     ]
 
-    async with NetboxAsyncClient(NETBOX_ENDPOINT, NETBOX_TOKEN) as nb:
-        sites = await nb.createDevices(device_list, "bonn", "access")
-        print(sites)
+    async  with AsyncNetboxCustom(NETBOX_ENDPOINT, NETBOX_TOKEN) as nb:
+        sites = await nb.createDevices(device_list, "bonn", "access", create_vc=True)
 
-        pass
-    # await aio.createDevices(device_list, "bonn", "access", None, True)
+        print(sites)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
-    pass
-    pass
-    pass
+    
+

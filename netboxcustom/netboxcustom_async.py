@@ -1,108 +1,35 @@
-import asyncio
-import ipaddress
-import os
 from typing import Any
 
 import httpx
-import jmespath
 
-from netboxcustom.netboxcustom import (
+from .AsyncNetboxRestClient import AsyncNetboxRestClient
+from .data import ScopeType, device_default_names
+from .exceptions import (
     NetboxCustomCreateDeviceError,
     NetboxCustomFieldMissing,
+    NetboxCustomGeneralError,
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
-    ScopeType,
-    build_stack_hostname,
-    device_default_names,
-    switch_position,
 )
+from .helper import build_stack_hostname, has_object_scope
 
 
-class NetboxAsyncClient:
-    """
-    Async NetBox client.
-
-    Nutzung:
-        async with NetboxAsyncClient(endpoint, token) as nb:
-            result = await nb.get_site_list()
-    """
-
-    def __init__(self, endpoint: str, token: str) -> None:
-        self._endpoint = endpoint
-        self._token = token
-        self._client: httpx.AsyncClient | None = None
-
-    # ------------------------------------------------------------------
-    # Lifecycle
-    # ------------------------------------------------------------------
-
-    async def __aenter__(self) -> "NetboxAsyncClient":
-
-        token_type = "Bearer" if self._token.startswith("nbt_") else "Token"
-
-        self._client = httpx.AsyncClient(
-            base_url=self._endpoint.rstrip("/"),
-            headers={
-                "Authorization": f"{token_type} {self._token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-        )
-        return self
-
-    async def __aexit__(self, *args: Any) -> None:
-        if self._client is not None:
-            await self._client.aclose()
-            self._client = None
-
-    def _get_client(self) -> httpx.AsyncClient:
-        if self._client is None:
-            raise RuntimeError(
-                "'async with NetboxAsyncClient(…)' muss vor der Verwendung aufgerufen werden."
-            )
-        return self._client
-
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    async def _fetch_all(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> list[dict[str, Any]] | None:
-        """
-        Lädt alle Seiten eines NetBox-Listenendpunkts (Pagination).
-        path: z.B. "dcim/sites/" (ohne führendes /api/)
-
-        Returns an empty list if nothing was found!
-        """
-        client = self._get_client()
-        results: list[dict[str, Any]] = []
-        url: str | None = f"/api/{path}"
-        current_params = params or {}
-
-        while url:
-            resp = await client.get(url, params=current_params)
-            resp.raise_for_status()
-            data = resp.json()
-            results.extend(data.get("results", []))
-            # next enthält die vollständige URL inkl. Query-Parameter
-            url = data.get("next")
-            # Params nur beim ersten Request setzen; next-URL enthält sie bereits
-            current_params = {}
-
-        return results
+class AsyncNetboxCustom(AsyncNetboxRestClient):
 
     async def _device_delete_all_ips(
-        self, device: dict[str, Any], interface_name: str = "vlan1"
+        self, device: dict[str, Any], interface_name: str | None = "vlan1"
     ) -> None:
-        """Löscht primary_ip4 und alle IPs an einem Interface."""
-        client = self._get_client()
+        """Deletes all primary ipv4 and ipv6 IPs and checks vlan1 if an IP is attached."""
 
         if device.get("primary_ip4"):
             ip_id = device["primary_ip4"]["id"]
-            await client.delete(f"/api/ipam/ip-addresses/{ip_id}/")
+            await self._delete_id("ipam/ip-addresses", ip_id)
 
-        if interface_name:
+        if device.get("primary_ip6"):
+            ip_id = device["primary_ip6"]["id"]
+            await self._delete_id("ipam/ip-addresses", ip_id)
+
+        if interface_name is not None:
             interfaces = await self._fetch_all(
                 "dcim/interfaces/",
                 {"device_id": device["id"], "name": interface_name},
@@ -112,12 +39,15 @@ class NetboxAsyncClient:
                     "ipam/ip-addresses/", {"interface_id": iface["id"]}
                 )
                 for ip in ip_list:
-                    await client.delete(f"/api/ipam/ip-addresses/{ip['id']}/")
+                    await self._delete_id("ipam/ip-addresses", ip["id"])
 
     async def _create_vc_from_device_list(
         self, device_obj_list: list[dict[str, Any]], site_id: int
     ) -> None:
-        """Erstellt ein Virtual Chassis aus einer Device-Liste."""
+        """
+        Erstellt ein Virtual Chassis aus einer Device-Liste.
+        Wenn VC_Position und VC_Priority nicht gesetzt sind, dann werden sie erzeugt.
+        """
         client = self._get_client()
 
         try:
@@ -133,12 +63,15 @@ class NetboxAsyncClient:
             resp.raise_for_status()
             vc = resp.json()
 
+            priority = 15
             for cnt, device in enumerate(device_obj_list, 1):
                 patch: dict[str, Any] = {"virtual_chassis": vc["id"]}
                 if not device.get("vc_position"):
                     patch["vc_position"] = cnt
                 if not device.get("vc_priority"):
-                    patch["vc_priority"] = switch_position[cnt]
+                    patch["vc_priority"] = priority
+                    priority = priority - 1
+
                 resp = await client.patch(
                     f"/api/dcim/devices/{device['id']}/", json=patch
                 )
@@ -271,7 +204,7 @@ class NetboxAsyncClient:
 
     async def createDevices(
         self,
-        device_info_list: list[dict[str, Any]] | None = None,
+        device_info_list: list[dict[str, Any]],
         site_slug: str = "",
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
@@ -279,9 +212,13 @@ class NetboxAsyncClient:
     ) -> list[dict[str, Any]]:
         """
         Erzeugt Devices in NetBox; bei >1 Device wird optional ein VC angelegt.
+
+        If a device is already part of a VC, the VC will be deleted, but not the device itself.
+
+        All existing IPs of a device are getting removed!
         """
-        if device_info_list is None:
-            device_info_list = []
+        # if device_info_list is None:
+        #     device_info_list = []
         if device_create_args is None:
             device_create_args = {}
 
@@ -301,14 +238,26 @@ class NetboxAsyncClient:
             )
         role = roles[0]
 
+        # make sure list is not longer than 15
+        if len(device_info_list) > 15:
+            raise NetboxCustomGeneralError(
+                "List of devices is >15, something is probably wrong!"
+            )
+
         # build and cleanup [list] of dict(s) to create the device(s)
+        priority = 15
         for index, dev in enumerate(device_info_list, 1):
+
+            # check for default names!
             if dev["name"] in device_default_names:
                 dev["name"] = f"{dev['name']}-{dev['serial']}"
 
+            # add create_args
+            dev.update(device_create_args)
+
+            # mandatory parameters
             dev["role"] = role["id"]
             dev["site"] = site["id"]
-            dev.update(device_create_args)
 
             if len(device_info_list) > 1:
                 if "slot" in dev:
@@ -319,7 +268,8 @@ class NetboxAsyncClient:
                 if "priority" in dev:
                     dev["vc_priority"] = f"{dev['priority']}"
                 else:
-                    dev["vc_priority"] = f"{switch_position[index]}"
+                    dev["vc_priority"] = f"{priority}"
+                    priority = priority - 1
 
         device_info_list = build_stack_hostname(
             device_info_list[0]["name"], device_info_list
@@ -342,7 +292,8 @@ class NetboxAsyncClient:
                 # build a new VC
                 if found.get("virtual_chassis"):
                     vc_id = found["virtual_chassis"]["id"]
-                    await client.delete(f"/api/dcim/virtual-chassis/{vc_id}/")
+                    # await client.delete(f"/api/dcim/virtual-chassis/{vc_id}/")
+                    await self._delete_id("dcim/virtual-chassis", vc_id)
             except NetboxCustomNotFoundError:
                 pass
 
@@ -419,110 +370,8 @@ class NetboxAsyncClient:
 
         return ret
 
-    # ------------------------------------------------------------------
-    # Prefix management
-    # ------------------------------------------------------------------
-
-    async def get_next_available_prefix(
-        self,
-        prefix_length: int,
-        role_slug: str,
-    ) -> dict[str, Any]:
-        """
-        Ermittelt das nächste freie Netz einer bestimmten Größe innerhalb von
-        Parent-Prefixes, die über role_slug gefiltert werden.
-
-        Returns:
-            {
-                "prefix": "10.0.0.0/23",
-                "parent_prefix": "10.0.0.0/20",
-                "parent_id": 123,
-            }
-
-        Raises:
-            NetboxCustomLookupError: wenn kein passendes freies Netz gefunden wird.
-        """
-        client = self._get_client()
-
-        try:
-            parent_prefixes = await self._fetch_all(
-                "ipam/prefixes/", {"role": role_slug}
-            )
-        except httpx.HTTPStatusError as e:
-            raise NetboxCustomLookupError(
-                f"[get_next_available_prefix] HTTP error: {e}"
-            )
-
-        if not parent_prefixes:
-            raise NetboxCustomLookupError(
-                f"[get_next_available_prefix] No prefixes found for role_slug '{role_slug}'."
-            )
-
-        for parent in parent_prefixes:
-            parent_id = parent["id"]
-            parent_prefix_str = parent["prefix"]
-
-            try:
-                resp = await client.get(
-                    f"/api/ipam/prefixes/{parent_id}/available-prefixes/"
-                )
-                resp.raise_for_status()
-            except httpx.HTTPStatusError as e:
-                raise NetboxCustomLookupError(
-                    f"[get_next_available_prefix] HTTP error fetching available-prefixes for {parent_prefix_str}: {e}"
-                )
-
-            available_blocks = resp.json()
-
-            for block in available_blocks:
-                network = ipaddress.ip_network(block["prefix"])
-                if network.prefixlen <= prefix_length:
-                    subnet = list(network.subnets(new_prefix=prefix_length))[0]
-                    return {
-                        "prefix": str(subnet),
-                        "parent_prefix": parent_prefix_str,
-                        "parent_id": parent_id,
-                    }
-
-        raise NetboxCustomLookupError(
-            f"[get_next_available_prefix] No free /{prefix_length} block found in prefixes with role_slug '{role_slug}'."
-        )
 
 
-# ---------------------------------------------------------------------------
-# Modul-Hilfsfunktionen (nicht client-spezifisch)
-# ---------------------------------------------------------------------------
 
-
-def has_object_tenant(obj: dict[str, Any]) -> bool:
-    """
-    General function. Checks if an netbox object has a tenant assigned
-    """
-    if jmespath.search("tenant.id", obj):
-        return True
-
-    return False
-
-
-def has_object_scope(obj: dict[str, Any], scope_type: ScopeType | None = None) -> bool:
-    """
-    Checks if a netbox object has a scope e.g. used on a prefix object.
-    But the scope object needs to have an id, to be a valid scope!
-    """
-
-    # if scope type is not found -> raus
-    if not jmespath.search("scope_type", obj):
-        return False
-
-    # if scope_type check is set!
-    if scope_type is not None:
-        type_str = jmespath.search("scope_type", obj)
-
-        if scope_type != type_str:
-            return False
-
-    # scope_type found! check if scope has an id (and is not None)
-    if jmespath.search("scope.id", obj):
-        return True
-
-    return False
+if __name__ == "__main__":
+    pass

@@ -1,10 +1,5 @@
-# from pyats_genie_command_parse import GenieCommandParse
-# parse_obj = GenieCommandParse(nos='ios')
-# data = parse_obj.parse_file(show_command='show version', file_name_and_path='./show_version.txt')
-# print(data)
-
 import re
-from typing import Any
+from typing import Any, cast
 
 from rich import print as print
 
@@ -69,7 +64,6 @@ def parse_hostname(show_result: str | list[str]) -> str:
 
 
 if __name__ == "__main__":
-
     # with open("sh-version-ios-xe.txt", "r") as f:
     #     show = f.read()
 
@@ -87,7 +81,7 @@ if __name__ == "__main__":
     asdfasdf
     """
 
-    show_result = show_result.split("\n")
+    show_result = cast(list[str],show_result.split("\n"))
 
     hostname = parse_hostname(show_result)
 
