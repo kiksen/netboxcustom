@@ -42,9 +42,7 @@ class AsyncNetboxRestClient:
 
     def _get_client(self) -> httpx.AsyncClient:
         if self._client is None:
-            raise RuntimeError(
-                "'async with NetboxAsyncClient(…)' muss vor der Verwendung aufgerufen werden."
-            )
+            raise RuntimeError("'async with NetboxAsyncClient(…)' muss vor der Verwendung aufgerufen werden.")
         return self._client
 
     # ------------------------------------------------------------------
@@ -59,9 +57,7 @@ class AsyncNetboxRestClient:
 
         return path
 
-    async def _fetch_all(
-        self, path: str, params: dict[str, Any] | None = None
-    ) -> list[dict[str, Any]]:
+    async def _fetch_all(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """
         Lädt alle Seiten eines NetBox-Listenendpunkts (Pagination).
         path: z.B. "dcim/sites/" (ohne führendes /api/)
@@ -91,5 +87,3 @@ class AsyncNetboxRestClient:
 
         resp = await client.delete(url + f"{id}/")
         resp.raise_for_status()
-
-

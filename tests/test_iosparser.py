@@ -1,4 +1,5 @@
 """Unit-Tests für iosparser.py — keine Netzwerkverbindung erforderlich."""
+
 import pathlib
 
 import pytest
@@ -31,7 +32,6 @@ Base Ethernet MAC Address          : aa:bb:cc:dd:ee:ff
 
 
 class TestParseShowVersion:
-
     def test_empty_string_returns_empty_list(self):
         assert parse_show_version("") == []
 
@@ -102,7 +102,6 @@ Base Ethernet MAC Address          : aa:bb:cc:dd:ee:ff
 
 
 class TestParseHostname:
-
     def test_string_input(self):
         assert parse_hostname("hostname MYROUTER") == "MYROUTER"
 

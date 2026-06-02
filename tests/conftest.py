@@ -33,9 +33,7 @@ def ensure_netbox_testdata(nb):
     # Manufacturer (Voraussetzung für Device Type)
     manufacturer = nb.dcim.manufacturers.get(slug="test-manufacturer")
     if not manufacturer:
-        manufacturer = nb.dcim.manufacturers.create(
-            name="TEST-MANUFACTURER", slug="test-manufacturer"
-        )
+        manufacturer = nb.dcim.manufacturers.create(name="TEST-MANUFACTURER", slug="test-manufacturer")
 
     # Device Type
     device_type = nb.dcim.device_types.get(model="TEST-C9200CX-12P-2X2G")

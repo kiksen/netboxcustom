@@ -6,9 +6,7 @@ import jmespath
 from .data import ScopeType
 
 
-def build_stack_hostname(
-    hostname: str, stack_list: list[dict[str, Any]]
-) -> list[dict[str, Any]]:
+def build_stack_hostname(hostname: str, stack_list: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Baut Stack-Hostnamen für eine Liste von Devices auf (Suffix -1, -2, ...).
     Ein eventuell vorhandenes Nummernsuffix im Hostnamen (z.B. HOSTNAME-1) wird entfernt.

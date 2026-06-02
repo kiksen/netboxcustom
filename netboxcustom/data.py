@@ -19,6 +19,7 @@ switch_position: dict = {
 }
 device_default_names: list[str] = ["switch", "router"]
 
+
 class ScopeType(StrEnum):
     """
     Gültige scope_type-Werte für NetBox IPAM Prefixes (ab v4.2).

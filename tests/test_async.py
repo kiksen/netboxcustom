@@ -70,7 +70,6 @@ def _dev(suffix: str, name: str = "async-test", device_type: str = DEVICE_TYPE) 
 
 
 class TestNbLogin:
-
     async def test_v1_token_uses_token_header(self, anb):
         token = os.environ.get("NETBOX_TOKEN", "")
         if not token.startswith("nbt_"):
@@ -94,7 +93,6 @@ class TestNbLogin:
 
 
 class TestGetSiteList:
-
     async def test_returns_list(self, anb):
         result = await aio.get_site_list()
         assert isinstance(result, list)
@@ -127,7 +125,6 @@ class TestGetSiteList:
 
 
 class TestDeviceExistsBySerial:
-
     async def test_raises_not_found_for_unknown_serial(self, anb):
         with pytest.raises(NetboxCustomNotFoundError):
             await aio.device_exists_bySerial("SERIAL-DOES-NOT-EXIST-XYZ-123")
@@ -166,9 +163,7 @@ class TestDeviceExistsBySerial:
             role_slug=ROLE_SLUG,
         )
 
-        with pytest.raises(
-            NetboxCustomNotFoundError, match="device type doesn't match"
-        ):
+        with pytest.raises(NetboxCustomNotFoundError, match="device type doesn't match"):
             await aio.device_exists_bySerial(serial, device_type="WRONG-MODEL-XYZ")
 
     async def test_returns_device_with_correct_type(self, anb, cleanup_devices):
@@ -190,7 +185,6 @@ class TestDeviceExistsBySerial:
 
 
 class TestCreateDevicesSingle:
-
     async def test_creates_single_device(self, anb, cleanup_devices):
         serial = f"{SERIAL_PREFIX}CD-001"
         cleanup_devices.append(serial)
@@ -233,9 +227,7 @@ class TestCreateDevicesSingle:
         cleanup_devices.append(serial)
 
         result = await aio.createDevices(
-            device_info_list=[
-                {"name": "switch", "device_type": DEVICE_TYPE, "serial": serial}
-            ],
+            device_info_list=[{"name": "switch", "device_type": DEVICE_TYPE, "serial": serial}],
             site_slug=SITE_SLUG,
             role_slug=ROLE_SLUG,
         )
@@ -270,7 +262,6 @@ class TestCreateDevicesSingle:
 
 
 class TestCreateDevicesIdempotency:
-
     async def test_existing_device_reused_not_duplicated(self, anb, cleanup_devices):
         serial = f"{SERIAL_PREFIX}ID-001"
         cleanup_devices.append(serial)
@@ -290,7 +281,6 @@ class TestCreateDevicesIdempotency:
 
 
 class TestCreateDevicesStack:
-
     async def test_creates_two_devices_for_stack(self, anb, cleanup_devices):
         s1, s2 = f"{SERIAL_PREFIX}SK-001", f"{SERIAL_PREFIX}SK-002"
         cleanup_devices.extend([s1, s2])
@@ -399,7 +389,6 @@ class TestCreateDevicesStack:
 
 
 class TestCreateDevicesErrors:
-
     async def test_raises_on_invalid_site_slug(self, anb):
         with pytest.raises(NetboxCustomCreateDeviceError, match="site_slug"):
             await aio.createDevices(
@@ -432,15 +421,11 @@ class TestCreateDevicesErrors:
 
     async def test_empty_device_list_raises_index_error(self, anb):
         with pytest.raises(IndexError):
-            await aio.createDevices(
-                device_info_list=[], site_slug=SITE_SLUG, role_slug=ROLE_SLUG
-            )
+            await aio.createDevices(device_info_list=[], site_slug=SITE_SLUG, role_slug=ROLE_SLUG)
 
     async def test_none_device_list_raises_index_error(self, anb):
         with pytest.raises(IndexError):
-            await aio.createDevices(
-                device_info_list=None, site_slug=SITE_SLUG, role_slug=ROLE_SLUG
-            )
+            await aio.createDevices(device_info_list=None, site_slug=SITE_SLUG, role_slug=ROLE_SLUG)
 
 
 # ---------------------------------------------------------------------------
@@ -449,12 +434,9 @@ class TestCreateDevicesErrors:
 
 
 class TestLookupSiteByIp:
-
     async def test_raises_for_ip_not_in_any_prefix(self, anb):
         with pytest.raises(NetboxCustomLookupError):
-            await aio.lookup_site_by_ip(
-                "240.0.0.1"
-            )  # TEST-NET, sollte nicht zugewiesen sein
+            await aio.lookup_site_by_ip("240.0.0.1")  # TEST-NET, sollte nicht zugewiesen sein
 
     async def test_returns_site_slug_for_known_ip(self, anb):
         result = await aio.lookup_site_by_ip(KNOWN_SITE_IP)
@@ -468,7 +450,6 @@ class TestLookupSiteByIp:
 
 
 class TestLookupFirmwareByModelType:
-
     async def test_raises_for_unknown_model(self, anb):
         with pytest.raises(NetboxCustomLookupError):
             await aio.lookup_firmware_by_model_type("MODEL-THAT-DOES-NOT-EXIST-XYZ")
@@ -490,7 +471,6 @@ class TestLookupFirmwareByModelType:
 
 
 class TestHasObjectHelpers:
-
     def test_site_scope_detected(self):
         obj = {
             "scope_type": str(ScopeType.SITE),

@@ -2,6 +2,7 @@
 Integration-Tests für createDevices().
 Erfordert NETBOX_ENDPOINT und NETBOX_TOKEN als Umgebungsvariablen.
 """
+
 import pytest
 import pynetbox
 
@@ -23,6 +24,7 @@ SERIAL_PREFIX = "TEST-CD-"
 # Hilfsfunktion
 # ---------------------------------------------------------------------------
 
+
 def _device_info(suffix: str, name: str = "test-device", device_type: str = DEVICE_TYPE) -> dict:
     return {
         "name": name,
@@ -35,8 +37,8 @@ def _device_info(suffix: str, name: str = "test-device", device_type: str = DEVI
 # Tests: Erfolgsfälle
 # ---------------------------------------------------------------------------
 
-class TestCreateDeviceSingle:
 
+class TestCreateDeviceSingle:
     def test_creates_single_device(self, nb, cleanup_devices):
         serial = f"{SERIAL_PREFIX}001"
         cleanup_devices.append(serial)
@@ -105,7 +107,6 @@ class TestCreateDeviceSingle:
 
 
 class TestCreateDeviceIdempotency:
-
     def test_existing_device_is_reused_not_duplicated(self, nb, cleanup_devices):
         """Wenn ein Device mit gleicher Seriennummer bereits existiert, darf kein Duplikat entstehen."""
         serial = f"{SERIAL_PREFIX}010"
@@ -134,8 +135,8 @@ class TestCreateDeviceIdempotency:
 # Tests: Stack / Virtual Chassis
 # ---------------------------------------------------------------------------
 
-class TestCreateDeviceStack:
 
+class TestCreateDeviceStack:
     def test_creates_two_devices_for_stack(self, nb, cleanup_devices):
         serial1 = f"{SERIAL_PREFIX}020"
         serial2 = f"{SERIAL_PREFIX}021"
@@ -173,9 +174,7 @@ class TestCreateDeviceStack:
             {"name": "pytest-vc", "device_type": DEVICE_TYPE, "serial": serial1, "slot": 1},
             {"name": "pytest-vc", "device_type": DEVICE_TYPE, "serial": serial2, "slot": 2},
         ]
-        result = createDevices(
-            nb, device_info, site_slug=SITE_SLUG, role_slug=ROLE_SLUG, create_vc=True
-        )
+        result = createDevices(nb, device_info, site_slug=SITE_SLUG, role_slug=ROLE_SLUG, create_vc=True)
 
         # Nach VC-Erstellung müssen wir die Objekte neu laden
         reloaded = [nb.dcim.devices.get(id=d.id) for d in result]
@@ -190,9 +189,7 @@ class TestCreateDeviceStack:
             {"name": "pytest-novc", "device_type": DEVICE_TYPE, "serial": serial1, "slot": 1},
             {"name": "pytest-novc", "device_type": DEVICE_TYPE, "serial": serial2, "slot": 2},
         ]
-        result = createDevices(
-            nb, device_info, site_slug=SITE_SLUG, role_slug=ROLE_SLUG, create_vc=False
-        )
+        result = createDevices(nb, device_info, site_slug=SITE_SLUG, role_slug=ROLE_SLUG, create_vc=False)
 
         reloaded = [nb.dcim.devices.get(id=d.id) for d in result]
         assert all(d.virtual_chassis is None for d in reloaded)
@@ -202,8 +199,8 @@ class TestCreateDeviceStack:
 # Tests: Fehlerfälle
 # ---------------------------------------------------------------------------
 
-class TestCreateDeviceErrors:
 
+class TestCreateDeviceErrors:
     def test_raises_on_invalid_site_slug(self, nb):
         device_info = [_device_info("ERR-001", name="pytest-bad-site")]
         with pytest.raises(NetboxCustomCreateDeviceError, match="site_slug"):

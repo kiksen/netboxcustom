@@ -12,15 +12,9 @@ def parse_show_version(show: str) -> list[dict[str, Any]]:
     """
     output = list()
 
-    model_matches = re.findall(
-        r"Model Number\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE
-    )
-    serial_matches = re.findall(
-        r"System Serial Number\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE
-    )
-    mac_matches = re.findall(
-        r"Base ethernet MAC Address\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE
-    )
+    model_matches = re.findall(r"Model Number\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE)
+    serial_matches = re.findall(r"System Serial Number\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE)
+    mac_matches = re.findall(r"Base ethernet MAC Address\s*:\s*(.*)$", show, re.MULTILINE | re.IGNORECASE)
 
     # print(model_matches)
     # print(serial_matches)
@@ -53,9 +47,7 @@ def parse_hostname(show_result: str | list[str]) -> str:
         result = show_result
 
     hostname = ""
-    m = re.search(
-        r"hostname ([A-Za-z0-9-]+)", result, flags=re.IGNORECASE | re.MULTILINE
-    )
+    m = re.search(r"hostname ([A-Za-z0-9-]+)", result, flags=re.IGNORECASE | re.MULTILINE)
 
     if m:
         hostname = m.group(1)
@@ -81,7 +73,7 @@ if __name__ == "__main__":
     asdfasdf
     """
 
-    show_result = cast(list[str],show_result.split("\n"))
+    show_result = cast(list[str], show_result.split("\n"))
 
     hostname = parse_hostname(show_result)
 
