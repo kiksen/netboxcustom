@@ -374,23 +374,23 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
         return ret
 
-async def lookup_firmware_list(self, model_type_slugs : list[str],         firmware_custom_field: str = "firmware_filename"):
+    async def lookup_firmware_list(self, model_type_slugs : list[str],         firmware_custom_field: str = "firmware_filename"):
 
-    ret :list[dict[str,str]] = []
+        ret :list[dict[str,str]] = []
 
-    for slug in model_type_slugs:
-        try:
-            r = await self.lookup_firmware_by_model_type(slug, firmware_custom_field)
-            ret.append(r)
-        except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
-            ret.append({
-                "platform" : "",
-            "firmware_filename" : "",
-                "flash" : "",
-            "error": str(e)
-            })
+        for slug in model_type_slugs:
+            try:
+                r = await self.lookup_firmware_by_model_type(slug, firmware_custom_field)
+                ret.append(r)
+            except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
+                ret.append({
+                    "platform" : "",
+                "firmware_filename" : "",
+                    "flash" : "",
+                "error": str(e)
+                })
 
-    return ret
+        return ret
 
 
 
