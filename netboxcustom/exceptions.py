@@ -20,8 +20,8 @@ class NetboxCustomBase(Exception):
             result += extra_str
         return result
 
-    def as_dict(self):
-        result = {
+    def as_dict(self) -> dict[str,Any]:
+        result : dict[str,Any]= {
             "message": self.message,
             "status_code": self.status_code,
             "status": self.status,

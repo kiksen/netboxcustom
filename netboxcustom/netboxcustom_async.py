@@ -332,11 +332,15 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         model_type: str,
         firmware_custom_field: str = "firmware_filename",
     ) -> dict[str, Any]:
+        
         ret: dict[str, Any] = {
             "firmware_filename": None,
             "platform": None,
             "flash": None,
+            "error": None
         }
+
+        models = []
 
         try:
             models = await self._fetch_all("dcim/device-types/", {"model": model_type})
@@ -346,9 +350,9 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         if len(models) == 0:
             raise NetboxCustomLookupError(f"Device type '{model_type}' not found!")
         if len(models) > 1:
-            raise NetboxCustomLookupError(
-                f"Multiple device types found for model '{model_type}'!"
-            )
+            raise NetboxCustomLookupError(f"Multiple device types found for model '{model_type}'!")
+
+            
 
         model = models[0]
         cf = model.get("custom_fields", {})
@@ -369,6 +373,24 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 ret["flash"] = "flash:"
 
         return ret
+
+async def lookup_firmware_list(self, model_type_slugs : list[str],         firmware_custom_field: str = "firmware_filename"):
+
+    ret :list[dict[str,str]] = []
+
+    for slug in model_type_slugs:
+        try:
+            r = await self.lookup_firmware_by_model_type(slug, firmware_custom_field)
+            ret.append(r)
+        except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
+            ret.append({
+                "platform" : "",
+            "firmware_filename" : "",
+                "flash" : "",
+            "error": str(e)
+            })
+
+    return ret
 
 
 
