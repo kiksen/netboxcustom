@@ -377,9 +377,13 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             ret.platform = ""
 
         if not ret.platform:
-            if re.match(r"(C9200|C9300|C9400|WS\-3850)", ret.device_type):
+            if re.match(
+                r"(C9200|C9300|C940|WS\-C3850)", ret.device_type, flags=re.IGNORECASE
+            ):
                 ret.platform = "IOS-XE"
-            if re.match(r"(WS\-C2960|WS\-C3750|WS\-C6500)", ret.device_type):
+            if re.match(
+                r"(WS\-C2960|WS\-C3750|WS\-C6500)", ret.device_type, flags=re.IGNORECASE
+            ):
                 ret.platform = "IOS"
 
         if ret.platform == "IOS-XE":
