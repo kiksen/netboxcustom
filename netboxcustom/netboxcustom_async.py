@@ -16,6 +16,16 @@ from .exceptions import (
 from .helper import build_stack_hostname, has_object_scope
 
 
+@dataclass
+class DeviceType:
+    device_type: str
+    firmware_custom_field: str
+    firmware_filename: str = ""
+    platform: str = ""
+    flash: str = ""
+    error: str = ""
+
+
 class AsyncNetboxCustom(AsyncNetboxRestClient):
     async def _device_delete_all_ips(
         self, device: dict[str, Any], interface_name: str | None = "vlan1"
@@ -326,14 +336,6 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
     # ------------------------------------------------------------------
     # Firmware
     # ------------------------------------------------------------------
-    @dataclass
-    class DeviceType:
-        device_type: str
-        firmware_custom_field: str
-        firmware_filename: str = ""
-        platform: str = ""
-        flash: str = ""
-        error: str = ""
 
     async def lookup_firmware_by_model_type(
         self,
@@ -341,7 +343,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         firmware_custom_field: str = "firmware_filename",
     ) -> DeviceType:
 
-        ret = self.DeviceType(
+        ret = DeviceType(
             device_type=device_type, firmware_custom_field=firmware_custom_field
         )
 
@@ -369,8 +371,11 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 f"Custom field 'firmware_filename' on device_type {device_type} not found!"
             )
 
+        ret = DeviceType(
+            device_type=device_type, firmware_custom_field=firmware_custom_field
+        )
         # default_platform is a nested object or null in the API response
-        platform_obj = model.get("default_platform")
+        platform_obj: dict[str, Any] = model.get("default_platform", "")
         if isinstance(platform_obj, dict):
             ret.platform = (platform_obj.get("name") or "").upper()
         else:
@@ -397,7 +402,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         self, model_types: list[str], firmware_custom_field: str = "firmware_filename"
     ) -> list[DeviceType]:
 
-        ret = []
+        ret: list[DeviceType] = []
 
         for model_type in model_types:
             try:
@@ -407,7 +412,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 ret.append(r)
             except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
                 ret.append(
-                    self.DeviceType(
+                    DeviceType(
                         device_type=model_type,
                         firmware_custom_field=firmware_custom_field,
                         error=str(e),
