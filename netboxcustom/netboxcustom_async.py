@@ -329,7 +329,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
     @dataclass
     class DeviceType:
         device_type: str
-        firmware_custom_fied: str
+        firmware_custom_field: str
         firmware_filename: str = ""
         platform: str = ""
         flash: str = ""
@@ -342,7 +342,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
     ) -> DeviceType:
 
         ret = self.DeviceType(
-            device_type=device_type, firmware_custom_fied=firmware_custom_field
+            device_type=device_type, firmware_custom_field=firmware_custom_field
         )
 
         models = []
@@ -409,7 +409,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 ret.append(
                     self.DeviceType(
                         device_type=model_type,
-                        firmware_custom_fied=firmware_custom_field,
+                        firmware_custom_field=firmware_custom_field,
                         error=str(e),
                     )
                 )
