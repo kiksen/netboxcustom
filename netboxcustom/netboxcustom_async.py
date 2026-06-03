@@ -368,9 +368,13 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             raise NetboxCustomFieldMissing(
                 f"Custom field 'firmware_filename' on device_type {device_type} not found!"
             )
-
-        ret.platform = model.get("default_platform", "")
-        ret.platform = ret.platform.upper()
+        
+        # default_platform is a nested object or null in the API response
+        platform_obj = model.get("default_platform")
+        if isinstance(platform_obj, dict):
+            ret.platform = (platform_obj.get("name") or "").upper()
+        else:
+            ret.platform = ""
 
         if not ret.platform:
             if re.match(r"(C9200|C9300|C9400|WS\-3850)", ret.device_type):
