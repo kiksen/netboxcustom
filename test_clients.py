@@ -1,6 +1,5 @@
 import asyncio
 import os
-from pprint import pprint
 
 from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 
@@ -29,7 +28,7 @@ async def main():
     async with AsyncNetboxCustom(NETBOX_ENDPOINT, NETBOX_TOKEN) as nb:
         sites = await nb.lookup_firmware_list(["C9200CX-12P-2X2G", "C3850-ABC", "C2960CX-8PC-Lx", "C9200L-24P-4G"], "firmware_filename")
 
-        pprint(sites)
+        print(sites)
 
 
 if __name__ == "__main__":

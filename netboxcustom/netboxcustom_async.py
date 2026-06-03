@@ -342,7 +342,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         device_type: str,
         firmware_custom_field: str = "firmware_filename",
     ) -> DeviceType:
-
+        
         ret = DeviceType(
             device_type=device_type, firmware_custom_field=firmware_custom_field
         )
@@ -371,11 +371,9 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 f"Custom field 'firmware_filename' on device_type {device_type} not found!"
             )
 
-        ret = DeviceType(
-            device_type=device_type, firmware_custom_field=firmware_custom_field
-        )
-        # default_platform is a nested object or null in the API response
-        platform_obj: dict[str, Any] = model.get("default_platform", "")
+        # if default_plaform is found it might be None
+        platform_obj: dict[str, Any] | None = model.get("default_platform", None)
+
         if isinstance(platform_obj, dict):
             ret.platform = (platform_obj.get("name") or "").upper()
         else:
