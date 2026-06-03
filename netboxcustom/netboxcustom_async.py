@@ -1,3 +1,4 @@
+import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -368,15 +369,19 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 f"Custom field 'firmware_filename' on device_type {device_type} not found!"
             )
 
-        print(model)
+        ret.platform = model.get("default_platform", "")
+        ret.platform = ret.platform.upper()
 
-        if model.get("default_platform"):
-            platform_name = model["default_platform"]["name"]
-            ret.platform = platform_name
-            if ret.platform == "IOS-XE":
-                ret.flash = "bootflash:"
-            elif platform_name == "IOS":
-                ret.flash = "flash:"
+        if not ret.platform:
+            if re.match(r"(C9200|C9300|C9400|WS\-3850)", ret.device_type):
+                ret.platform = "IOS-XE"
+            if re.match(r"(WS\-2960|WS\-3750|WS\-C6500)", ret.device_type):
+                ret.platform = "IOS"
+
+        if ret.platform == "IOS-XE":
+            ret.flash = "bootflash:"
+        elif ret.platform == "IOS":
+            ret.flash = "flash:"
 
         return ret
 
