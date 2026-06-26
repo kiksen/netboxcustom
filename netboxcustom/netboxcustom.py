@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from .netboxcustom_async import AsyncNetboxCustom
+from .netboxcustom_async import AsyncNetboxCustom, LookupSiteByIp
 
 
 class NetboxCustom:
@@ -46,6 +46,9 @@ class NetboxCustom:
 
     def lookup_site_by_ip(self, device_ip: str = "0.0.0.0", api_filter: dict[str, Any] | None = None) -> str:
         return self._loop.run_until_complete(self._async.lookup_site_by_ip(device_ip, api_filter))
+
+    def lookup_site_by_ip_full(self, device_ip: str = "0.0.0.0", api_filter: dict[str, Any] | None = None) -> LookupSiteByIp:
+        return self._loop.run_until_complete(self._async.lookup_site_by_ip_full(device_ip, api_filter))
 
     def device_exists_bySerial(self, serial_number: str, device_type: str | None = None) -> dict[str, Any]:
         return self._loop.run_until_complete(self._async.device_exists_bySerial(serial_number, device_type))
