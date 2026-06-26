@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NamedTuple
 
 import httpx
 
@@ -25,6 +25,13 @@ class DeviceType:
     platform: str = ""
     flash: str = ""
     error: str = ""
+
+
+@dataclass
+class LookupSiteByIp:
+    site_slug: str
+    api_filter: dict[str, Any]
+    subnet: str
 
 
 class AsyncNetboxCustom(AsyncNetboxRestClient):
@@ -146,10 +153,48 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 return network["scope"]["slug"]
             else:
                 raise NetboxScopeTypeNotFound(
-                    f"{network.get('prefix','')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
+                    f"{network.get('prefix', '')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
                 )
         else:
             raise NetboxCustomLookupError(f"No network found! Adjust api_filter! {str(api_filter)}")
+
+    async def lookup_site_by_ip_full(
+        self,
+        device_ip: str = "0.0.0.0",
+        api_filter: dict[str, Any] | None = None,
+    ) -> LookupSiteByIp:
+        """
+        example:
+            sites = await nb.lookup_site_by_ip_full(
+            "192.168.178.4", {"role": "network-management"}
+        )
+        """
+        params: dict[str, Any] = {"contains": device_ip}
+        if api_filter:
+            params.update(api_filter)
+
+        prefix_list = await self._fetch_all("ipam/prefixes/", params)
+
+        # get prefix with biggest match
+        if len(prefix_list) >= 1:
+            network = prefix_list[-1]
+
+            if has_object_scope(network, ScopeType.SITE):
+                return LookupSiteByIp(
+                    site_slug=network["scope"]["slug"],
+                    api_filter=api_filter or {},
+                    subnet=network["prefix"],
+                )
+            else:
+                raise NetboxScopeTypeNotFound(
+                    f"{network.get('prefix', '')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
+                )
+        else:
+            raise NetboxCustomLookupError(f"No network found! Adjust api_filter! {str(api_filter)}")
+
+    # ------------------------------------------------------------------
+    # Devices
+    # ------------------------------------------------------------------
 
     # ------------------------------------------------------------------
     # Devices
