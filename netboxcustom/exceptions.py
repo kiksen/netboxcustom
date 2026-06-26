@@ -58,6 +58,17 @@ class NetboxCustomNotFoundError(NetboxCustomBase):
         self.status_code = 404
 
 
+class NetboxScopeTypeNotFound(NetboxCustomBase):
+    """
+    Used when to access a scope_type like dcim.site
+    """
+
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(f"{message}")
+        self.status_code = 404
+
+
 class NetboxCustomFieldMissing(NetboxCustomBase):
     def __init__(self, message: str):
         self.message = message

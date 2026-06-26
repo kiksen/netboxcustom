@@ -12,6 +12,7 @@ from .exceptions import (
     NetboxCustomGeneralError,
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
+    NetboxScopeTypeNotFound,
 )
 from .helper import build_stack_hostname, has_object_scope
 
@@ -27,9 +28,7 @@ class DeviceType:
 
 
 class AsyncNetboxCustom(AsyncNetboxRestClient):
-    async def _device_delete_all_ips(
-        self, device: dict[str, Any], interface_name: str | None = "vlan1"
-    ) -> None:
+    async def _device_delete_all_ips(self, device: dict[str, Any], interface_name: str | None = "vlan1") -> None:
         """Deletes all primary ipv4 and ipv6 IPs and checks vlan1 if an IP is attached."""
 
         if device.get("primary_ip4"):
@@ -46,15 +45,11 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 {"device_id": device["id"], "name": interface_name},
             )
             for iface in interfaces:
-                ip_list = await self._fetch_all(
-                    "ipam/ip-addresses/", {"interface_id": iface["id"]}
-                )
+                ip_list = await self._fetch_all("ipam/ip-addresses/", {"interface_id": iface["id"]})
                 for ip in ip_list:
                     await self._delete_id("ipam/ip-addresses", ip["id"])
 
-    async def _create_vc_from_device_list(
-        self, device_obj_list: list[dict[str, Any]], site_id: int
-    ) -> None:
+    async def _create_vc_from_device_list(self, device_obj_list: list[dict[str, Any]], site_id: int) -> None:
         """
         Erstellt ein Virtual Chassis aus einer Device-Liste.
         Wenn VC_Position und VC_Priority nicht gesetzt sind, dann werden sie erzeugt.
@@ -83,9 +78,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     patch["vc_priority"] = priority
                     priority = priority - 1
 
-                resp = await client.patch(
-                    f"/api/dcim/devices/{device['id']}/", json=patch
-                )
+                resp = await client.patch(f"/api/dcim/devices/{device['id']}/", json=patch)
                 resp.raise_for_status()
 
         except httpx.HTTPStatusError as e:
@@ -152,7 +145,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             if has_object_scope(network, ScopeType.SITE):
                 return network["scope"]["slug"]
             else:
-                raise NetboxCustomLookupError(
+                raise NetboxScopeTypeNotFound(
                     f"{network.get('prefix')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
                 )
         else:
@@ -173,14 +166,10 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             raise NetboxCustomLookupError(f"[device_exists by Serial] {e}")
 
         if len(devices) > 1:
-            raise NetboxCustomLookupError(
-                f"[device_exists by Serial] More than one device found for serial {serial_number}!"
-            )
+            raise NetboxCustomLookupError(f"[device_exists by Serial] More than one device found for serial {serial_number}!")
 
         if len(devices) == 0:
-            raise NetboxCustomNotFoundError(
-                f"Serial {serial_number} not found in Netbox!"
-            )
+            raise NetboxCustomNotFoundError(f"Serial {serial_number} not found in Netbox!")
 
         device = devices[0]
 
@@ -209,9 +198,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         if "content" in data:
             return data["content"]
         else:
-            raise NetboxCustomLookupError(
-                "No content found in netbox answer [get_rendered_config_bySerial]"
-            )
+            raise NetboxCustomLookupError("No content found in netbox answer [get_rendered_config_bySerial]")
 
     async def createDevices(
         self,
@@ -237,23 +224,17 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
         sites = await self._fetch_all("dcim/sites/", {"slug": site_slug})
         if not sites:
-            raise NetboxCustomCreateDeviceError(
-                f'site_slug "{site_slug}" not found in netbox.'
-            )
+            raise NetboxCustomCreateDeviceError(f'site_slug "{site_slug}" not found in netbox.')
         site = sites[0]
 
         roles = await self._fetch_all("dcim/device-roles/", {"slug": role_slug})
         if not roles:
-            raise NetboxCustomCreateDeviceError(
-                f'role_slug "{role_slug}" not found in netbox.'
-            )
+            raise NetboxCustomCreateDeviceError(f'role_slug "{role_slug}" not found in netbox.')
         role = roles[0]
 
         # make sure list is not longer than 15
         if len(device_info_list) > 15:
-            raise NetboxCustomGeneralError(
-                "List of devices is >15, something is probably wrong!"
-            )
+            raise NetboxCustomGeneralError("List of devices is >15, something is probably wrong!")
 
         # build and cleanup [list] of dict(s) to create the device(s)
         priority = 15
@@ -281,9 +262,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     dev["vc_priority"] = f"{priority}"
                     priority = priority - 1
 
-        device_info_list = build_stack_hostname(
-            device_info_list[0]["name"], device_info_list
-        )
+        device_info_list = build_stack_hostname(device_info_list[0]["name"], device_info_list)
 
         # contains the created devices
         device_obj_list: list[dict[str, Any]] = []
@@ -292,9 +271,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             found: dict[str, Any] | None = None
 
             try:
-                found = await self.device_exists_bySerial(
-                    dev["serial"], device_type=dev["device_type"]
-                )
+                found = await self.device_exists_bySerial(dev["serial"], device_type=dev["device_type"])
                 await self._device_delete_all_ips(found)
                 device_obj_list.append(found)
 
@@ -308,9 +285,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 pass
 
             # check if needed device_types exits
-            device_types = await self._fetch_all(
-                "dcim/device-types/", {"model": dev["device_type"]}
-            )
+            device_types = await self._fetch_all("dcim/device-types/", {"model": dev["device_type"]})
             if not device_types:
                 raise NetboxCustomCreateDeviceError(
                     f'Device_Type "{dev["device_type"]}" not found in netbox, please create it before using it.'
@@ -324,9 +299,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     resp.raise_for_status()
                     device_obj_list.append(resp.json())
                 except httpx.HTTPStatusError as e:
-                    raise NetboxCustomCreateDeviceError(
-                        f"Netbox error: {e.response.text}"
-                    )
+                    raise NetboxCustomCreateDeviceError(f"Netbox error: {e.response.text}")
 
         if len(device_obj_list) > 1 and create_vc:
             await self._create_vc_from_device_list(device_obj_list, site_id=site["id"])
@@ -342,10 +315,8 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         device_type: str,
         firmware_custom_field: str = "firmware_filename",
     ) -> DeviceType:
-        
-        ret = DeviceType(
-            device_type=device_type, firmware_custom_field=firmware_custom_field
-        )
+
+        ret = DeviceType(device_type=device_type, firmware_custom_field=firmware_custom_field)
 
         models = []
 
@@ -357,9 +328,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         if len(models) == 0:
             raise NetboxCustomLookupError(f"Device type '{device_type}' not found!")
         if len(models) > 1:
-            raise NetboxCustomLookupError(
-                f"Multiple device types found for model '{device_type}'!"
-            )
+            raise NetboxCustomLookupError(f"Multiple device types found for model '{device_type}'!")
 
         model = models[0]
         cf = model.get("custom_fields", {})
@@ -367,9 +336,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         if firmware_custom_field in cf:
             ret.firmware_filename = cf[firmware_custom_field]
         else:
-            raise NetboxCustomFieldMissing(
-                f"Custom field 'firmware_filename' on device_type {device_type} not found!"
-            )
+            raise NetboxCustomFieldMissing(f"Custom field 'firmware_filename' on device_type {device_type} not found!")
 
         # if default_plaform is found it might be None
         platform_obj: dict[str, Any] | None = model.get("default_platform", None)
@@ -380,13 +347,9 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             ret.platform = ""
 
         if not ret.platform:
-            if re.match(
-                r"(C9200|C9300|C940|WS\-C3850)", ret.device_type, flags=re.IGNORECASE
-            ):
+            if re.match(r"(C9200|C9300|C940|WS\-C3850)", ret.device_type, flags=re.IGNORECASE):
                 ret.platform = "IOS-XE"
-            if re.match(
-                r"(WS\-C2960|WS\-C3750|WS\-C6500)", ret.device_type, flags=re.IGNORECASE
-            ):
+            if re.match(r"(WS\-C2960|WS\-C3750|WS\-C6500)", ret.device_type, flags=re.IGNORECASE):
                 ret.platform = "IOS"
 
         if ret.platform == "IOS-XE":
@@ -404,9 +367,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
         for model_type in model_types:
             try:
-                r = await self.lookup_firmware_by_model_type(
-                    model_type, firmware_custom_field
-                )
+                r = await self.lookup_firmware_by_model_type(model_type, firmware_custom_field)
                 ret.append(r)
             except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
                 ret.append(
