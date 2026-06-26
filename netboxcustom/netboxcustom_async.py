@@ -146,10 +146,10 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 return network["scope"]["slug"]
             else:
                 raise NetboxScopeTypeNotFound(
-                    f"{network.get('prefix')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
+                    f"{network.get('prefix','')} has no netbox ScopeType.SITE '{ScopeType.SITE}' assigned!"
                 )
         else:
-            raise NetboxCustomLookupError("No network found! Adjust api_filter!")
+            raise NetboxCustomLookupError(f"No network found! Adjust api_filter! {str(api_filter)}")
 
     # ------------------------------------------------------------------
     # Devices
