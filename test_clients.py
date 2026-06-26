@@ -26,9 +26,10 @@ async def main():
     ]
 
     async with AsyncNetboxCustom(NETBOX_ENDPOINT, NETBOX_TOKEN) as nb:
-        sites = await nb.lookup_firmware_list(["C9200CX-12P-2X2G", "C3850-ABC", "C2960CX-8PC-Lx", "C9200L-24P-4G"], "firmware_filename")
+        #sites = await nb.lookup_firmware_list(["C9200CX-12P-2X2G", "C3850-ABC", "C2960CX-8PC-Lx", "C9200L-24P-4G"], "firmware_filename")
+        site = await nb.lookup_site_by_ip("192.168.99.1")
 
-        print(sites)
+        print(site)
 
 
 if __name__ == "__main__":
