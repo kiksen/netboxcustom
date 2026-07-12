@@ -64,13 +64,13 @@ if __name__ == "__main__":
 
     # stack_list = parse_show_version(show)
 
-    hostname = "SZDEMHGX-"
+    hostname = "SWITCH-"
 
     show_result = """
-    blabla
-    asdasdf
+    abcde
+    fghlmnop
     hostname TEST-de
-    asdfasdf
+    abcabc
     """
 
     show_result = cast(list[str], show_result.split("\n"))

@@ -2,6 +2,8 @@ from typing import Any
 
 import httpx
 
+from .exceptions import NetboxCustomConnectionError
+
 
 class AsyncNetboxRestClient:
     """
@@ -70,7 +72,11 @@ class AsyncNetboxRestClient:
         current_params = params or {}
 
         while url:
-            resp = await client.get(url, params=current_params)
+            try:
+                resp = await client.get(url, params=current_params)
+            except httpx.TransportError as e:
+                raise NetboxCustomConnectionError(message=str(e))
+            
             resp.raise_for_status()
             data = resp.json()
             results.extend(data.get("results", []))
@@ -85,5 +91,27 @@ class AsyncNetboxRestClient:
         client = self._get_client()
         url: str = self._fix_path(path)
 
-        resp = await client.delete(url + f"{id}/")
+        try:
+            resp = await client.delete(url + f"{id}/")
+        except httpx.TransportError as e:
+            raise NetboxCustomConnectionError(message=str(e))
+
         resp.raise_for_status()
+
+    async def _patch(self, path: str, json: dict | None = None) -> httpx.Response:
+        client = self._get_client()
+        url = self._fix_path(path)
+        try:
+            resp = await client.patch(url, json=json)
+        except httpx.TransportError as e:
+            raise NetboxCustomConnectionError(message=str(e))
+        return resp
+
+    async def _post(self, path: str, json: dict | None = None) -> httpx.Response:
+        client = self._get_client()
+        url = self._fix_path(path)
+        try:
+            resp = await client.post(url, json=json)
+        except httpx.TransportError as e:
+            raise NetboxCustomConnectionError(message=str(e))
+        return resp

@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import Any
 
 import httpx
 
@@ -61,12 +61,10 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         Erstellt ein Virtual Chassis aus einer Device-Liste.
         Wenn VC_Position und VC_Priority nicht gesetzt sind, dann werden sie erzeugt.
         """
-        client = self._get_client()
-
         try:
             vc_name = device_obj_list[0]["name"]
-            resp = await client.post(
-                "/api/dcim/virtual-chassis/",
+            resp = await self._post(
+                "dcim/virtual-chassis/",
                 json={
                     "name": vc_name,
                     "site": site_id,
@@ -85,7 +83,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     patch["vc_priority"] = priority
                     priority = priority - 1
 
-                resp = await client.patch(f"/api/dcim/devices/{device['id']}/", json=patch)
+                resp = await self._patch(f"dcim/devices/{device['id']}", json=patch)
                 resp.raise_for_status()
 
         except httpx.HTTPStatusError as e:
@@ -231,10 +229,8 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
     async def get_rendered_config_bySerial(self, serial_number: str) -> str:
         device = await self.device_exists_bySerial(serial_number)
-        client = self._get_client()
-
         try:
-            resp = await client.post(f"/api/dcim/devices/{device['id']}/render-config/")
+            resp = await self._post(f"dcim/devices/{device['id']}/render-config")
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
             raise NetboxCustomLookupError(str(e))
@@ -264,8 +260,6 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         #     device_info_list = []
         if device_create_args is None:
             device_create_args = {}
-
-        client = self._get_client()
 
         sites = await self._fetch_all("dcim/sites/", {"slug": site_slug})
         if not sites:
@@ -340,7 +334,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             # since device was not found it can be created
             if not found:
                 try:
-                    resp = await client.post("/api/dcim/devices/", json=dev)
+                    resp = await self._post("dcim/devices/", json=dev)
                     resp.raise_for_status()
                     device_obj_list.append(resp.json())
                 except httpx.HTTPStatusError as e:

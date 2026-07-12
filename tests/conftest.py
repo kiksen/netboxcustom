@@ -3,7 +3,13 @@ import os
 import pynetbox
 import pytest
 
-from netboxcustom.netboxcustom import ScopeType, nb_login
+import pynetbox
+
+from netboxcustom.data import ScopeType
+
+
+def nb_login(endpoint: str, token: str):
+    return pynetbox.api(endpoint, token=token)
 
 
 @pytest.fixture(scope="session")
@@ -15,7 +21,7 @@ def nb():
     return nb_login(endpoint, token)
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="session")
 def ensure_netbox_testdata(nb):
     """Stellt sicher, dass alle für die Tests benötigten NetBox-Objekte existieren.
     Legt fehlende Objekte an, löscht sie aber nicht."""

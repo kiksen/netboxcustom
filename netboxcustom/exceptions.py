@@ -82,5 +82,10 @@ class NetboxCustomGeneralError(NetboxCustomBase):
         self.message = message
         super().__init__(f"{message}")
         self.status_code = 400
-        self.status_code = 400
-        self.status_code = 400
+
+class NetboxCustomConnectionError(NetboxCustomBase):
+    def __init__(self, message: str):
+        self.message = message
+        super().__init__(f"{message}")
+        # no http status code when no connection is possible
+        self.status_code = 0
