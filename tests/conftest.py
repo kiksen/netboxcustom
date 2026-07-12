@@ -3,13 +3,9 @@ import os
 import pynetbox
 import pytest
 
-import pynetbox
-
 from netboxcustom.data import ScopeType
-
-
-def nb_login(endpoint: str, token: str):
-    return pynetbox.api(endpoint, token=token)
+from netboxcustom.netboxcustom import NetboxCustom
+from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 
 
 @pytest.fixture(scope="session")
@@ -18,30 +14,24 @@ def nb():
     token = os.environ.get("NETBOX_TOKEN", "")
     assert endpoint, "NETBOX_ENDPOINT env var nicht gesetzt"
     assert token, "NETBOX_TOKEN env var nicht gesetzt"
-    return nb_login(endpoint, token)
+    return pynetbox.api(endpoint, token=token)
 
 
 @pytest.fixture(scope="session")
 def ensure_netbox_testdata(nb):
-    """Stellt sicher, dass alle für die Tests benötigten NetBox-Objekte existieren.
-    Legt fehlende Objekte an, löscht sie aber nicht."""
-
-    # Site
+    """Stellt sicher, dass alle für die Tests benötigten NetBox-Objekte existieren."""
     site = nb.dcim.sites.get(slug="TEST-SITE")
     if not site:
         site = nb.dcim.sites.create(name="TEST-SITE", slug="TEST-SITE")
 
-    # Device Role
     role = nb.dcim.device_roles.get(slug="access")
     if not role:
         nb.dcim.device_roles.create(name="access", slug="access", color="000000")
 
-    # Manufacturer (Voraussetzung für Device Type)
     manufacturer = nb.dcim.manufacturers.get(slug="test-manufacturer")
     if not manufacturer:
         manufacturer = nb.dcim.manufacturers.create(name="TEST-MANUFACTURER", slug="test-manufacturer")
 
-    # Device Type
     device_type = nb.dcim.device_types.get(model="TEST-C9200CX-12P-2X2G")
     if not device_type:
         nb.dcim.device_types.create(
@@ -50,12 +40,10 @@ def ensure_netbox_testdata(nb):
             slug="test-c9200cx-12p-2x2g",
         )
 
-    # Tenant
     tenant = nb.tenancy.tenants.get(name="TEST-TENANT")
     if not tenant:
         nb.tenancy.tenants.create(name="TEST-TENANT", slug="test-tenant")
 
-    # Prefix für lookup_site_by_ip (99.99.99.1 → TEST-SITE)
     existing = list(nb.ipam.prefixes.filter(prefix="99.99.99.0/24"))
     if not existing:
         nb.ipam.prefixes.create(
@@ -65,15 +53,29 @@ def ensure_netbox_testdata(nb):
         )
 
 
+@pytest.fixture(scope="session")
+def nb_custom(ensure_netbox_testdata):
+    endpoint = os.environ.get("NETBOX_ENDPOINT", "")
+    token = os.environ.get("NETBOX_TOKEN", "")
+    with NetboxCustom(endpoint, token) as client:
+        yield client
+
+
+@pytest.fixture(scope="session")
+async def anb(ensure_netbox_testdata):
+    endpoint = os.environ.get("NETBOX_ENDPOINT", "")
+    token = os.environ.get("NETBOX_TOKEN", "")
+    async with AsyncNetboxCustom(endpoint, token) as client:
+        yield client
+
+
 @pytest.fixture
 def cleanup_devices(nb):
-    """Löscht nach jedem Test alle Devices mit den übergebenen Seriennummern.
-    VC-Mitgliedschaft wird vorher aufgelöst."""
+    """Löscht nach jedem Test alle Devices mit den übergebenen Seriennummern."""
     created_serials = []
 
     yield created_serials
 
-    # Zuerst alle betroffenen VCs einsammeln und löschen
     vc_ids_to_delete = set()
     devices_to_delete = []
 
@@ -89,10 +91,7 @@ def cleanup_devices(nb):
         if vc:
             vc.delete()
 
-    # Devices neu laden (VC-Referenz entfernt) und löschen
     for device in devices_to_delete:
         fresh = nb.dcim.devices.get(id=device.id)
         if fresh:
             fresh.delete()
-
-    pass

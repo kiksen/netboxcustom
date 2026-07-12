@@ -68,7 +68,7 @@ class TestParseShowVersion:
     def test_stack_serials(self, show_version_ios_xe_stack):
         result = parse_show_version(show_version_ios_xe_stack)
         serials = [r["serial"] for r in result]
-        assert "FCW2233FFG3" in serials
+        assert "FCW2233FFAB" in serials
         assert "FCW1234F88V" in serials
 
     def test_stack_models(self, show_version_ios_xe_stack):
