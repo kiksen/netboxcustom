@@ -1,11 +1,10 @@
 import re
-from dataclasses import dataclass
 from typing import Any
 
 import httpx
 
 from .AsyncNetboxRestClient import AsyncNetboxRestClient
-from .data import ScopeType, device_default_names
+from .data import device_default_names
 from .exceptions import (
     NetboxCustomCreateDeviceError,
     NetboxCustomFieldMissing,
@@ -15,23 +14,7 @@ from .exceptions import (
     NetboxScopeTypeNotFound,
 )
 from .helper import build_stack_hostname, has_object_scope
-
-
-@dataclass
-class DeviceType:
-    device_type: str
-    firmware_custom_field: str
-    firmware_filename: str = ""
-    platform: str = ""
-    flash: str = ""
-    error: str = ""
-
-
-@dataclass
-class LookupSiteByIp:
-    site_slug: str
-    api_filter: dict[str, Any]
-    subnet: str
+from .models import DeviceType, LookupSiteByIp, ScopeType
 
 
 class AsyncNetboxCustom(AsyncNetboxRestClient):
@@ -182,6 +165,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     site_slug=network["scope"]["slug"],
                     api_filter=api_filter or {},
                     subnet=network["prefix"],
+                    subnet_list=[net['prefix'] for net in prefix_list]
                 )
             else:
                 raise NetboxScopeTypeNotFound(

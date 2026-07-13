@@ -1,7 +1,8 @@
 import asyncio
 from typing import Any
 
-from .netboxcustom_async import AsyncNetboxCustom, LookupSiteByIp
+from .models import DeviceType, LookupSiteByIp
+from .netboxcustom_async import AsyncNetboxCustom
 
 
 class NetboxCustom:
@@ -68,5 +69,5 @@ class NetboxCustom:
             self._async.createDevices(device_info_list, site_slug, role_slug, device_create_args, create_vc)
         )
 
-    def lookup_firmware_by_model_type(self, model_type: str, firmware_custom_field: str = "firmware_filename") -> dict[str, Any]:
+    def lookup_firmware_by_model_type(self, model_type: str, firmware_custom_field: str = "firmware_filename") -> DeviceType:
         return self._loop.run_until_complete(self._async.lookup_firmware_by_model_type(model_type, firmware_custom_field))

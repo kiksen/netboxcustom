@@ -9,13 +9,11 @@ import pytest
 
 from netboxcustom import (
     NetboxCustomCreateDeviceError,
-    NetboxCustomFieldMissing,
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
-    ScopeType,
 )
 from netboxcustom.helper import has_object_scope, has_object_tenant
-from netboxcustom.netboxcustom_async import DeviceType
+from netboxcustom.models import DeviceType, ScopeType
 
 SITE_SLUG = "TEST-SITE"
 ROLE_SLUG = "access"

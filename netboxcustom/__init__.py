@@ -1,4 +1,3 @@
-from .data import ScopeType
 from .exceptions import (
     NetboxCustomBase,
     NetboxCustomConnectionError,
@@ -10,5 +9,6 @@ from .exceptions import (
     NetboxCustomNotFoundError,
     NetboxScopeTypeNotFound,
 )
+from .models import ScopeType
 from .netboxcustom import NetboxCustom
 from .netboxcustom_async import AsyncNetboxCustom

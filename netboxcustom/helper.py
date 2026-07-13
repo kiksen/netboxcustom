@@ -3,7 +3,7 @@ from typing import Any
 
 import jmespath
 
-from .data import ScopeType
+from .models import ScopeType
 
 
 def build_stack_hostname(hostname: str, stack_list: list[dict[str, Any]]) -> list[dict[str, Any]]:

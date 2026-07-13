@@ -3,7 +3,7 @@ import os
 import pynetbox
 import pytest
 
-from netboxcustom.data import ScopeType
+from netboxcustom.models import ScopeType
 from netboxcustom.netboxcustom import NetboxCustom
 from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 

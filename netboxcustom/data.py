@@ -1,4 +1,3 @@
-from enum import StrEnum
 
 device_roll_slug: str = "access"
 network_roll_slug: str = "network-management"
@@ -20,13 +19,3 @@ switch_position: dict = {
 device_default_names: list[str] = ["switch", "router"]
 
 
-class ScopeType(StrEnum):
-    """
-    Gültige scope_type-Werte für NetBox IPAM Prefixes (ab v4.2).
-    Format: <app_label>.<model_name>
-    """
-
-    REGION = "dcim.region"
-    SITE_GROUP = "dcim.sitegroup"
-    SITE = "dcim.site"
-    LOCATION = "dcim.location"
