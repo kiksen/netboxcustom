@@ -1,4 +1,5 @@
 import re
+from dataclasses import asdict
 from typing import Any
 
 import httpx
@@ -14,7 +15,7 @@ from .exceptions import (
     NetboxScopeTypeNotFound,
 )
 from .helper import build_stack_hostname, has_object_scope
-from .models import DeviceType, LookupSiteByIp, ScopeType
+from .models import DeviceInfo, DeviceType, LookupSiteByIp, ScopeType
 
 
 class AsyncNetboxCustom(AsyncNetboxRestClient):
@@ -234,11 +235,25 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         create_vc: bool = False,
     ) -> list[dict[str, Any]]:
         """
-        Erzeugt Devices in NetBox; bei >1 Device wird optional ein VC angelegt.
+        Creates devices in NetBox. If more than one device is provided, a Virtual
+        Chassis (VC) can optionally be created.
 
-        If a device is already part of a VC, the VC will be deleted, but not the device itself.
+        If a device already exists and is part of a Virtual Chassis, the VC is deleted,
+        but the device itself is kept and reused.
 
-        All existing IPs of a device are getting removed!
+        All existing IP addresses assigned to a device are removed before reuse.
+
+        Each item in ``device_info_list`` must have the following structure:
+
+            {
+                "name": str,
+                "serial": str,
+                "device_type": str,
+
+                # Optional
+                "slot": int,
+                "priority": int,
+            }
         """
         # if device_info_list is None:
         #     device_info_list = []
@@ -328,6 +343,23 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             await self._create_vc_from_device_list(device_obj_list, site_id=site["id"])
 
         return device_obj_list
+
+    async def createDevicesFromModels(
+        self,
+        device_info_list: list[DeviceInfo],
+        site_slug: str = "",
+        role_slug: str = "",
+        device_create_args: dict[str, Any] | None = None,
+        create_vc: bool = False,
+    ) -> list[dict[str, Any]]:
+        """
+        Wrapper function which takes a list of DeviceInfo objects instead of a dict
+        """
+        raw = [
+            {k: v for k, v in asdict(d).items() if v is not None}
+            for d in device_info_list
+        ]
+        return await self.createDevices(raw, site_slug, role_slug, device_create_args, create_vc)
 
     # ------------------------------------------------------------------
     # Firmware

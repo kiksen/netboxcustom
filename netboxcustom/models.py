@@ -32,6 +32,15 @@ class LookupSiteByIp:
 
 
 @dataclass
+class DeviceInfo:
+    name: str
+    serial: str
+    device_type: str
+    slot: int | None = None
+    priority: int | None = None
+
+
+@dataclass
 class DeviceType:
     """
     Returned by lookup_firmware_by_model_type
