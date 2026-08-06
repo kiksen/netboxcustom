@@ -77,7 +77,11 @@ class AsyncNetboxRestClient:
             except httpx.TransportError as e:
                 raise NetboxCustomConnectionError(message=str(e))
             
-            resp.raise_for_status()
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as e:
+                raise NetboxCustomConnectionError(message=str(e))
+            
             data = resp.json()
             results.extend(data.get("results", []))
             # next enthält die vollständige URL inkl. Query-Parameter
