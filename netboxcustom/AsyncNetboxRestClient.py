@@ -1,8 +1,9 @@
 from typing import Any
+from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from .exceptions import NetboxCustomConnectionError
+from .exceptions import NetboxCustomConnectionError, NetboxCustomGeneralError
 
 
 class AsyncNetboxRestClient:
@@ -10,7 +11,7 @@ class AsyncNetboxRestClient:
     Async NetBox client.
 
     Nutzung:
-        async with NetboxAsyncClient(endpoint, token) as nb:
+        async with AsyncNetboxRestClient(endpoint, token) as nb:
             result = await nb.get_site_list()
     """
 
@@ -23,7 +24,7 @@ class AsyncNetboxRestClient:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "NetboxAsyncClient":
+    async def __aenter__(self) -> "AsyncNetboxRestClient":
 
         token_type = "Bearer" if self._token.startswith("nbt_") else "Token"
 
@@ -59,6 +60,16 @@ class AsyncNetboxRestClient:
 
         return path
 
+    def _relative_url(self, url: str) -> str:
+        """
+        NetBox returns absolute URLs in pagination links. Keep following them
+        through the configured base_url instead of switching to the URL host.
+        """
+        parts = urlsplit(url)
+        if parts.scheme and parts.netloc:
+            return urlunsplit(("", "", parts.path, parts.query, parts.fragment))
+        return url
+
     async def _fetch_all(self, path: str, params: dict[str, Any] | None = None) -> list[dict[str, Any]]:
         """
         Lädt alle Seiten eines NetBox-Listenendpunkts (Pagination).
@@ -68,26 +79,34 @@ class AsyncNetboxRestClient:
         """
         client = self._get_client()
         results: list[dict[str, Any]] = []
-        url: str | None = f"/api/{path}"
-        current_params = params or {}
+        url: str | None = self._fix_path(path)
+        current_params: dict[str, Any] | None = dict(params or {})
+        current_params.setdefault("limit", 1000)
+        seen_urls: set[str] = set()
 
         while url:
+            url = self._relative_url(url)
+            request_url = str(client.build_request("GET", url, params=current_params).url)
+            if request_url in seen_urls:
+                raise NetboxCustomGeneralError(f"NetBox pagination loop detected for {request_url}")
+            seen_urls.add(request_url)
+
             try:
                 resp = await client.get(url, params=current_params)
             except httpx.TransportError as e:
                 raise NetboxCustomConnectionError(message=str(e))
-            
+
             try:
                 resp.raise_for_status()
             except httpx.HTTPStatusError as e:
                 raise NetboxCustomConnectionError(message=str(e))
-            
+
             data = resp.json()
             results.extend(data.get("results", []))
             # next enthält die vollständige URL inkl. Query-Parameter
             url = data.get("next")
             # Params nur beim ersten Request setzen; next-URL enthält sie bereits
-            current_params = {}
+            current_params = None
 
         return results
 
