@@ -16,6 +16,6 @@ switch_position: dict = {
     9: 6,
     10: 5,
 }
-device_default_names: list[str] = ["switch", "router"]
+
 
 

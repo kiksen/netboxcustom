@@ -5,7 +5,6 @@ from typing import Any
 import httpx
 
 from .AsyncNetboxRestClient import AsyncNetboxRestClient
-from .data import device_default_names
 from .exceptions import (
     NetboxCustomCreateDeviceError,
     NetboxCustomFieldMissing,
@@ -233,6 +232,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
+        default_device_names: None | list[str] = None
     ) -> list[dict[str, Any]]:
         """
         Creates devices in NetBox. If more than one device is provided, a Virtual
@@ -255,6 +255,10 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 "priority": int,
             }
         """
+        # 
+        if default_device_names is None:
+            default_device_names = ["switch", "router"]
+
         # if device_info_list is None:
         #     device_info_list = []
         if device_create_args is None:
@@ -278,7 +282,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         priority = 15
         for index, dev in enumerate(device_info_list, 1):
             # check for default names!
-            if dev["name"] in device_default_names:
+            if dev["name"] in default_device_names:
                 dev["name"] = f"{dev['name']}-{dev['serial']}"
 
             # add create_args
