@@ -64,9 +64,12 @@ class NetboxCustom:
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
+        default_device_names: None | list[str] = None,
     ) -> list[dict[str, Any]]:
         return self._loop.run_until_complete(
-            self._async.createDevices(device_info_list, site_slug, role_slug, device_create_args, create_vc)
+            self._async.createDevices(
+                device_info_list, site_slug, role_slug, device_create_args, create_vc, default_device_names
+            )
         )
 
     def lookup_firmware_by_model_type(self, model_type: str, firmware_custom_field: str = "firmware_filename") -> DeviceType:

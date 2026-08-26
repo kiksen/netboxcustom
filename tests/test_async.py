@@ -13,7 +13,7 @@ from netboxcustom import (
     NetboxCustomNotFoundError,
 )
 from netboxcustom.helper import has_object_scope, has_object_tenant
-from netboxcustom.models import DeviceType, ScopeType
+from netboxcustom.models import DeviceInfo, DeviceType, ScopeType
 
 SITE_SLUG = "TEST-SITE"
 ROLE_SLUG = "access"
@@ -178,6 +178,28 @@ class TestCreateDevicesSingle:
             role_slug=ROLE_SLUG,
         )
         assert result[0]["name"] == f"switch-{serial}"
+
+    async def test_custom_default_device_names_gets_serial_appended(self, anb, cleanup_devices):
+        serial = f"{SERIAL_PREFIX}CD-007"
+        cleanup_devices.append(serial)
+        result = await anb.createDevices(
+            device_info_list=[{"name": "ap", "device_type": DEVICE_TYPE, "serial": serial}],
+            site_slug=SITE_SLUG,
+            role_slug=ROLE_SLUG,
+            default_device_names=["ap"],
+        )
+        assert result[0]["name"] == f"ap-{serial}"
+
+    async def test_from_models_custom_default_device_names_gets_serial_appended(self, anb, cleanup_devices):
+        serial = f"{SERIAL_PREFIX}CD-008"
+        cleanup_devices.append(serial)
+        result = await anb.createDevicesFromModels(
+            device_info_list=[DeviceInfo(name="ap", serial=serial, device_type=DEVICE_TYPE)],
+            site_slug=SITE_SLUG,
+            role_slug=ROLE_SLUG,
+            default_device_names=["ap"],
+        )
+        assert result[0]["name"] == f"ap-{serial}"
 
     async def test_device_findable_after_creation(self, anb, cleanup_devices):
         serial = f"{SERIAL_PREFIX}CD-005"

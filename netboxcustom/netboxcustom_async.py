@@ -355,6 +355,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
+        default_device_names: None | list[str] = None,
     ) -> list[dict[str, Any]]:
         """
         Wrapper function which takes a list of DeviceInfo objects instead of a dict
@@ -363,7 +364,9 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             {k: v for k, v in asdict(d).items() if v is not None}
             for d in device_info_list
         ]
-        return await self.createDevices(raw, site_slug, role_slug, device_create_args, create_vc)
+        return await self.createDevices(
+            raw, site_slug, role_slug, device_create_args, create_vc, default_device_names
+        )
 
     # ------------------------------------------------------------------
     # Firmware

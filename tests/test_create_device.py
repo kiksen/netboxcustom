@@ -79,6 +79,17 @@ class TestCreateDeviceSingle:
         )
         assert result[0]["name"] == f"switch-{serial}"
 
+    def test_custom_default_device_names_gets_serial_appended(self, nb_custom, cleanup_devices):
+        serial = f"{SERIAL_PREFIX}007"
+        cleanup_devices.append(serial)
+        result = nb_custom.createDevices(
+            device_info_list=[{"name": "ap", "device_type": DEVICE_TYPE, "serial": serial}],
+            site_slug=SITE_SLUG,
+            role_slug=ROLE_SLUG,
+            default_device_names=["ap"],
+        )
+        assert result[0]["name"] == f"ap-{serial}"
+
     def test_extra_create_args_are_applied(self, nb_custom, cleanup_devices):
         serial = f"{SERIAL_PREFIX}006"
         cleanup_devices.append(serial)
