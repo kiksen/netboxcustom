@@ -54,8 +54,8 @@ class NetboxCustom:
     def device_exists_bySerial(self, serial_number: str, device_type: str | None = None) -> dict[str, Any]:
         return self._loop.run_until_complete(self._async.device_exists_bySerial(serial_number, device_type))
 
-    def get_rendered_config_bySerial(self, serial_number: str) -> str:
-        return self._loop.run_until_complete(self._async.get_rendered_config_bySerial(serial_number))
+    def get_rendered_config_bySerial(self, serial_number: str, load_vc_master: bool = False) -> str:
+        return self._loop.run_until_complete(self._async.get_rendered_config_bySerial(serial_number, load_vc_master))
 
     def createDevices(
         self,

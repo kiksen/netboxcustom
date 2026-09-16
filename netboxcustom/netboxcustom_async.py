@@ -211,10 +211,24 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
         return device
 
-    async def get_rendered_config_bySerial(self, serial_number: str) -> str:
+    async def get_rendered_config_bySerial(self, serial_number: str, load_vc_master: bool = False) -> str:
         device = await self.device_exists_bySerial(serial_number)
+        device_id = device["id"]
+
+        if load_vc_master and device.get("virtual_chassis"):
+            vc_id = device["virtual_chassis"]["id"]
+            vc_list = await self._fetch_all("dcim/virtual-chassis/", {"id": vc_id})
+            if not vc_list:
+                raise NetboxCustomLookupError(f"Virtual chassis {vc_id} not found in Netbox!")
+
+            master = vc_list[0].get("master")
+            if not master:
+                raise NetboxCustomLookupError(f"Virtual chassis {vc_id} has no master device assigned!")
+
+            device_id = master["id"]
+
         try:
-            resp = await self._post(f"dcim/devices/{device['id']}/render-config")
+            resp = await self._post(f"dcim/devices/{device_id}/render-config")
             resp.raise_for_status()
         except httpx.HTTPStatusError as e:
             raise NetboxCustomLookupError(str(e))
