@@ -216,14 +216,11 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         device_id = device["id"]
 
         if load_vc_master and device.get("virtual_chassis"):
-            vc_id = device["virtual_chassis"]["id"]
-            vc_list = await self._fetch_all("dcim/virtual-chassis/", {"id": vc_id})
-            if not vc_list:
-                raise NetboxCustomLookupError(f"Virtual chassis {vc_id} not found in Netbox!")
-
-            master = vc_list[0].get("master")
+            master = device["virtual_chassis"].get("master")
             if not master:
-                raise NetboxCustomLookupError(f"Virtual chassis {vc_id} has no master device assigned!")
+                raise NetboxCustomLookupError(
+                    f"Virtual chassis {device['virtual_chassis']['id']} has no master device assigned!"
+                )
 
             device_id = master["id"]
 
