@@ -212,10 +212,18 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         return device
 
     async def get_rendered_config_bySerial(self, serial_number: str, load_vc_master: bool = False) -> str:
+        """
+        Lädt die gerenderte Config für das Device mit der angegebenen Seriennummer.
+
+        Wenn ``load_vc_master`` True ist und das gefundene Device Teil eines Virtual
+        Chassis (VC) ist, wird stattdessen die Config des VC-Masters geladen.
+        """
         device = await self.device_exists_bySerial(serial_number)
         device_id = device["id"]
 
         if load_vc_master and device.get("virtual_chassis"):
+            # master ist am VirtualChassis-Objekt kein Pflichtfeld (z.B. direkt nach dem
+            # Anlegen oder wenn er entfernt wurde), daher hier explizit auf Vorhandensein prüfen.
             master = device["virtual_chassis"].get("master")
             if not master:
                 raise NetboxCustomLookupError(
