@@ -50,7 +50,7 @@ asyncio.run(main())
 | Module | Description |
 |---|---|
 | `netboxcustom` | Synchronous API (uses pynetbox) |
-| `netboxcustom.aio` | Asynchronous API (uses httpx) |
+| `netboxcustom.aio` | Asynchronous API (uses httpx2) |
 | `netboxcustom.iosparser` | Cisco IOS/IOS-XE `show version` parser |
 
 ---
@@ -477,7 +477,7 @@ has_object_scope(prefix, "dcim.site")    # same, using raw string
 
 All synchronous functions have async equivalents in `netboxcustom.aio`. Key differences:
 
-- Uses `httpx.AsyncClient` instead of pynetbox
+- Uses `httpx2.AsyncClient` instead of pynetbox
 - Returns `dict` instead of pynetbox model objects
 - Auto-handles API pagination
 - Token type detected automatically (`nbt_` prefix → Bearer, else Token)

@@ -1,4 +1,4 @@
-import httpx
+import httpx2
 import pytest
 
 from netboxcustom.AsyncNetboxRestClient import AsyncNetboxRestClient
@@ -12,18 +12,18 @@ async def _close(client: AsyncNetboxRestClient) -> None:
 
 
 async def test_fetch_all_follows_paginated_next_urls() -> None:
-    requests: list[httpx.URL] = []
+    requests: list[httpx2.URL] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request.url)
         offset = request.url.params.get("offset")
         if offset == "1000":
-            return httpx.Response(
+            return httpx2.Response(
                 200,
                 json={"count": 2, "next": None, "previous": "x", "results": [{"id": 2}]},
             )
 
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={
                 "count": 2,
@@ -34,7 +34,7 @@ async def test_fetch_all_follows_paginated_next_urls() -> None:
         )
 
     client = AsyncNetboxRestClient("https://netbox.example", "token")
-    client._client = httpx.AsyncClient(base_url="https://netbox.example", transport=httpx.MockTransport(handler))
+    client._client = httpx2.AsyncClient(base_url="https://netbox.example", transport=httpx2.MockTransport(handler))
     try:
         result = await client._fetch_all("dcim/sites/")
     finally:
@@ -48,17 +48,17 @@ async def test_fetch_all_follows_paginated_next_urls() -> None:
 
 
 async def test_fetch_all_keeps_explicit_limit_zero() -> None:
-    requests: list[httpx.URL] = []
+    requests: list[httpx2.URL] = []
 
-    def handler(request: httpx.Request) -> httpx.Response:
+    def handler(request: httpx2.Request) -> httpx2.Response:
         requests.append(request.url)
-        return httpx.Response(
+        return httpx2.Response(
             200,
             json={"count": 1, "next": None, "previous": None, "results": [{"id": 1}]},
         )
 
     client = AsyncNetboxRestClient("https://netbox.example", "token")
-    client._client = httpx.AsyncClient(base_url="https://netbox.example", transport=httpx.MockTransport(handler))
+    client._client = httpx2.AsyncClient(base_url="https://netbox.example", transport=httpx2.MockTransport(handler))
     try:
         result = await client._fetch_all("dcim/sites/", {"limit": 0})
     finally:
@@ -69,8 +69,8 @@ async def test_fetch_all_keeps_explicit_limit_zero() -> None:
 
 
 async def test_fetch_all_rejects_repeated_next_url() -> None:
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(
             200,
             json={
                 "count": 2,
@@ -81,7 +81,7 @@ async def test_fetch_all_rejects_repeated_next_url() -> None:
         )
 
     client = AsyncNetboxRestClient("https://netbox.example", "token")
-    client._client = httpx.AsyncClient(base_url="https://netbox.example", transport=httpx.MockTransport(handler))
+    client._client = httpx2.AsyncClient(base_url="https://netbox.example", transport=httpx2.MockTransport(handler))
     try:
         with pytest.raises(NetboxCustomGeneralError, match="pagination loop"):
             await client._fetch_all("dcim/sites/")

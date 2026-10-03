@@ -1,7 +1,7 @@
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
-import httpx
+import httpx2
 
 from .exceptions import NetboxCustomConnectionError, NetboxCustomGeneralError
 
@@ -18,7 +18,7 @@ class AsyncNetboxRestClient:
     def __init__(self, endpoint: str, token: str) -> None:
         self._endpoint = endpoint
         self._token = token
-        self._client: httpx.AsyncClient | None = None
+        self._client: httpx2.AsyncClient | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -28,7 +28,7 @@ class AsyncNetboxRestClient:
 
         token_type = "Bearer" if self._token.startswith("nbt_") else "Token"
 
-        self._client = httpx.AsyncClient(
+        self._client = httpx2.AsyncClient(
             base_url=self._endpoint.rstrip("/"),
             headers={
                 "Authorization": f"{token_type} {self._token}",
@@ -43,7 +43,7 @@ class AsyncNetboxRestClient:
             await self._client.aclose()
             self._client = None
 
-    def _get_client(self) -> httpx.AsyncClient:
+    def _get_client(self) -> httpx2.AsyncClient:
         if self._client is None:
             raise RuntimeError("'async with NetboxAsyncClient(…)' muss vor der Verwendung aufgerufen werden.")
         return self._client
@@ -93,12 +93,12 @@ class AsyncNetboxRestClient:
 
             try:
                 resp = await client.get(url, params=current_params)
-            except httpx.TransportError as e:
+            except httpx2.TransportError as e:
                 raise NetboxCustomConnectionError(message=str(e))
 
             try:
                 resp.raise_for_status()
-            except httpx.HTTPStatusError as e:
+            except httpx2.HTTPStatusError as e:
                 raise NetboxCustomConnectionError(message=str(e))
 
             data = resp.json()
@@ -116,25 +116,25 @@ class AsyncNetboxRestClient:
 
         try:
             resp = await client.delete(url + f"{id}/")
-        except httpx.TransportError as e:
+        except httpx2.TransportError as e:
             raise NetboxCustomConnectionError(message=str(e))
 
         resp.raise_for_status()
 
-    async def _patch(self, path: str, json: dict | None = None) -> httpx.Response:
+    async def _patch(self, path: str, json: dict | None = None) -> httpx2.Response:
         client = self._get_client()
         url = self._fix_path(path)
         try:
             resp = await client.patch(url, json=json)
-        except httpx.TransportError as e:
+        except httpx2.TransportError as e:
             raise NetboxCustomConnectionError(message=str(e))
         return resp
 
-    async def _post(self, path: str, json: dict | None = None) -> httpx.Response:
+    async def _post(self, path: str, json: dict | None = None) -> httpx2.Response:
         client = self._get_client()
         url = self._fix_path(path)
         try:
             resp = await client.post(url, json=json)
-        except httpx.TransportError as e:
+        except httpx2.TransportError as e:
             raise NetboxCustomConnectionError(message=str(e))
         return resp

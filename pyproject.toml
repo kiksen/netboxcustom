@@ -1,17 +1,17 @@
 [project]
 name = "netboxcustom"
-version = "0.2.3"
+version = "0.3.0"
 description = "A pynetbox wrapper and helper functions for netbox."
 authors = [{ name = "Christian Knoblauch" }]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.14"
 dependencies = [
     "pynetbox",
     "jmespath",
-    "httpx",
     "rich>=14.3.3",
     "pytest>=8.3.5",
     "pytest-asyncio",
+    "httpx2>=2.13.1",
 ]
 
 [build-system]

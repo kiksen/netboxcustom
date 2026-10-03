@@ -11,7 +11,7 @@ class NetboxCustom:
 
     Wraps all async methods automatically via __getattr__.
     A single event loop is kept alive for the lifetime of the context manager
-    so the underlying httpx.AsyncClient stays open across method calls.
+    so the underlying httpx2.AsyncClient stays open across method calls.
 
     Usage:
         with NetboxCustom(endpoint, token) as nb:

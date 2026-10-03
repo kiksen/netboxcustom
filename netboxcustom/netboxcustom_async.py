@@ -2,7 +2,7 @@ import re
 from dataclasses import asdict
 from typing import Any
 
-import httpx
+import httpx2
 
 from .AsyncNetboxRestClient import AsyncNetboxRestClient
 from .exceptions import (
@@ -69,7 +69,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 resp = await self._patch(f"dcim/devices/{device['id']}", json=patch)
                 resp.raise_for_status()
 
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise NetboxCustomCreateDeviceError(f"VC creation error: {e.response.text}")
 
     # ------------------------------------------------------------------
@@ -235,7 +235,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         try:
             resp = await self._post(f"dcim/devices/{device_id}/render-config")
             resp.raise_for_status()
-        except httpx.HTTPStatusError as e:
+        except httpx2.HTTPStatusError as e:
             raise NetboxCustomLookupError(str(e))
 
         data = resp.json()
@@ -359,7 +359,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                     resp = await self._post("dcim/devices/", json=dev)
                     resp.raise_for_status()
                     device_obj_list.append(resp.json())
-                except httpx.HTTPStatusError as e:
+                except httpx2.HTTPStatusError as e:
                     raise NetboxCustomCreateDeviceError(f"Netbox error: {e.response.text}")
 
         if len(device_obj_list) > 1 and create_vc:
