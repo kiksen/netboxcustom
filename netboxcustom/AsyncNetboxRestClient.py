@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Self
 from urllib.parse import urlsplit, urlunsplit
 
 import httpx2
@@ -24,7 +24,7 @@ class AsyncNetboxRestClient:
     # Lifecycle
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "AsyncNetboxRestClient":
+    async def __aenter__(self) -> Self:
 
         token_type = "Bearer" if self._token.startswith("nbt_") else "Token"
 

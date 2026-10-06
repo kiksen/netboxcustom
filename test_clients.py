@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 
 from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 
@@ -28,7 +29,12 @@ async def main():
         #site = await nb.lookup_site_by_ip_full("10.200.0.145")
         #sites = await nb.get_site_list(params={ "limit":3 })
 
-        await nb.createDevices(        device_info_list,        site_slug="bonn",        role_slug="access", default_device_names=["switch","max"]        )
+        #await nb.createDevices(        device_info_list,        site_slug="bonn",        role_slug="access", default_device_names=["switch","max"]        )
+        config = await nb.get_rendered_config_bySerial("FOC-C-Horn", load_vc_master=True)
+
+
+        print(config)
+        print("Cont interface: ",  len(re.findall("interface ", config))    )    
         pass
 
 
