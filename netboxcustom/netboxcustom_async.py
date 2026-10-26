@@ -251,7 +251,8 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         role_slug: str = "",
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
-        default_device_names: None | list[str] = None
+        default_device_names: None | list[str] = None,
+        compare_lowercase: bool = False
     ) -> list[dict[str, Any]]:
         """
         Creates devices in NetBox. If more than one device is provided, a Virtual
@@ -275,8 +276,18 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             }
         """
         # 
+
         if default_device_names is None:
             default_device_names = ["switch", "router"]
+
+        # make sure all hostnames are lowercase
+        if compare_lowercase:
+            tmp = [r.lower() for r in default_device_names]
+            default_device_names = tmp
+
+            for device in device_info_list:
+                device['name'] = device['name'].lower()
+
 
         # if device_info_list is None:
         #     device_info_list = []
@@ -375,6 +386,8 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
         default_device_names: None | list[str] = None,
+        compare_lowercase : bool = False
+        
     ) -> list[dict[str, Any]]:
         """
         Wrapper function which takes a list of DeviceInfo objects instead of a dict
@@ -384,7 +397,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             for d in device_info_list
         ]
         return await self.createDevices(
-            raw, site_slug, role_slug, device_create_args, create_vc, default_device_names
+            raw, site_slug, role_slug, device_create_args, create_vc, default_device_names, compare_lowercase
         )
 
     # ------------------------------------------------------------------
