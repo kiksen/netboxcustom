@@ -48,6 +48,8 @@ class DeviceType:
     device_type: str
     firmware_custom_field: str
     firmware_filename: str = ""
+    # optional second custom field (target version), empty if not requested or not set
+    firmware_version: str = ""
     platform: str = ""
     flash: str = ""
     error: str = ""

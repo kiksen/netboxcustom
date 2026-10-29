@@ -408,6 +408,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         self,
         device_type: str,
         firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
     ) -> DeviceType:
 
         ret = DeviceType(device_type=device_type, firmware_custom_field=firmware_custom_field)
@@ -432,6 +433,10 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         else:
             raise NetboxCustomFieldMissing(f"Custom field 'firmware_filename' on device_type {device_type} not found!")
 
+        # the version is optional - a missing or empty field is not an error
+        if version_custom_field:
+            ret.firmware_version = str(cf.get(version_custom_field) or "")
+
         # if default_plaform is found it might be None
         platform_obj: dict[str, Any] | None = model.get("default_platform", None)
 
@@ -454,14 +459,19 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         return ret
 
     async def lookup_firmware_list(
-        self, model_types: list[str], firmware_custom_field: str = "firmware_filename"
+        self,
+        model_types: list[str],
+        firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
     ) -> list[DeviceType]:
 
         ret: list[DeviceType] = []
 
         for model_type in model_types:
             try:
-                r = await self.lookup_firmware_by_model_type(model_type, firmware_custom_field)
+                r = await self.lookup_firmware_by_model_type(
+                    model_type, firmware_custom_field, version_custom_field
+                )
                 ret.append(r)
             except (NetboxCustomLookupError, NetboxCustomFieldMissing) as e:
                 ret.append(
