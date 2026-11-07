@@ -511,16 +511,16 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
                 )
         return ret
 
-    async def lookup_firmware_list(
+    async def get_device_types_by_names(
         self,
-        model_types: list[str],
+        device_types: list[str],
         firmware_custom_field: str = "firmware_filename",
         version_custom_field: str | None = None,
     ) -> list[DeviceType]:
 
         ret: list[DeviceType] = []
 
-        for model_type in model_types:
+        for model_type in device_types:
             try:
                 r = await self.get_device_type(
                     model_type, firmware_custom_field, version_custom_field

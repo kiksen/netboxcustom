@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Sequence
 from typing import Any, Literal
 
-from .models import DeviceType, LookupSiteByIp
+from .models import DeviceInfo, DeviceType, LookupSiteByIp
 from .netboxcustom_async import AsyncNetboxCustom
 
 
@@ -66,10 +66,39 @@ class NetboxCustom:
         device_create_args: dict[str, Any] | None = None,
         create_vc: bool = False,
         default_device_names: None | list[str] = None,
+        compare_lowercase: bool = False,
     ) -> list[dict[str, Any]]:
         return self._loop.run_until_complete(
             self._async.createDevices(
-                device_info_list, site_slug, role_slug, device_create_args, create_vc, default_device_names
+                device_info_list,
+                site_slug,
+                role_slug,
+                device_create_args,
+                create_vc,
+                default_device_names,
+                compare_lowercase,
+            )
+        )
+
+    def createDevicesFromModels(
+        self,
+        device_info_list: list[DeviceInfo],
+        site_slug: str = "",
+        role_slug: str = "",
+        device_create_args: dict[str, Any] | None = None,
+        create_vc: bool = False,
+        default_device_names: None | list[str] = None,
+        compare_lowercase: bool = False,
+    ) -> list[dict[str, Any]]:
+        return self._loop.run_until_complete(
+            self._async.createDevicesFromModels(
+                device_info_list,
+                site_slug,
+                role_slug,
+                device_create_args,
+                create_vc,
+                default_device_names,
+                compare_lowercase,
             )
         )
 
@@ -95,4 +124,14 @@ class NetboxCustom:
     ) -> list[DeviceType]:
         return self._loop.run_until_complete(
             self._async.get_device_types(api_filter, firmware_custom_field, version_custom_field)
+        )
+
+    def get_device_types_by_names(
+        self,
+        device_types: list[str],
+        firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
+    ) -> list[DeviceType]:
+        return self._loop.run_until_complete(
+            self._async.get_device_types_by_names(device_types, firmware_custom_field, version_custom_field)
         )

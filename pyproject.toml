@@ -1,12 +1,11 @@
 [project]
 name = "netboxcustom"
-version = "0.4.0"
-description = "A pynetbox wrapper and helper functions for netbox."
+version = "0.5.0"
+description = "Helper functions and an async/sync client for the netbox REST API."
 authors = [{ name = "Christian Knoblauch" }]
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
-    "pynetbox",
     "jmespath",
     "rich>=14.3.3",
     "pytest>=8.3.5",
@@ -26,6 +25,7 @@ asyncio_default_test_loop_scope = "session"
 
 [dependency-groups]
 dev = [
+    "pynetbox",
     "ruff>=0.15.12",
 ]
 
