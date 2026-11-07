@@ -360,7 +360,7 @@ assign_tenant_to_ip(nb, ip_obj, tenant_id=5)
 
 ### `get_device_type` / `get_device_types`
 
-Return `DeviceType` objects with firmware metadata, read from custom fields (`firmware_custom_field`, optional `version_custom_field`) and the type's default platform. `get_device_type(device_type)` returns exactly one; `get_device_types(api_filter)` returns all matches (types missing the firmware field get `error` set).
+Return `DeviceType` objects with firmware metadata, read from custom fields (`firmware_custom_field`, optional `version_custom_field`) and the type's default platform. `get_device_type(device_type, search_from="model", ignore_case=False)` returns exactly one; `search_from` is `"model"`, `"part_number"`, `"slug"` or a tuple of them (tried in order, first match wins), `ignore_case` makes the match case-insensitive; `get_device_types(api_filter)` returns all matches (types missing the firmware field get `error` set).
 
 ```python
 from netboxcustom import NetboxCustom

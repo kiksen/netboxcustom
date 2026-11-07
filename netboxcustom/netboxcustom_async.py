@@ -1,6 +1,7 @@
 import re
+from collections.abc import Sequence
 from dataclasses import asdict
-from typing import Any
+from typing import Any, Literal
 
 import httpx2
 
@@ -450,19 +451,36 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         device_type: str,
         firmware_custom_field: str = "firmware_filename",
         version_custom_field: str | None = None,
+        search_from: Literal["model", "part_number", "slug"] | Sequence[Literal["model", "part_number", "slug"]] = "model",
+        ignore_case: bool = False,
     ) -> DeviceType:
-        """Look up exactly one device type by model name."""
-        try:
-            models = await self._fetch_all("dcim/device-types/", {"model": device_type})
-        except Exception as e:
-            raise NetboxCustomLookupError(f"get_device_type {e}")
+        """
+        Look up exactly one device type.
 
-        if len(models) == 0:
-            raise NetboxCustomLookupError(f"Device type '{device_type}' not found!")
-        if len(models) > 1:
-            raise NetboxCustomLookupError(f"Multiple device types found for model '{device_type}'!")
+        search_from: "model", "part_number" or "slug", or several of them (e.g. ("model", "part_number", "slug")).
+        Multiple fields are tried in the given order, the first field with a match wins.
+        ignore_case: case-insensitive exact match (netbox lookup ``__ie``).
+        """
+        fields = [search_from] if isinstance(search_from, str) else list(search_from)
+        invalid = [f for f in fields if f not in ("model", "part_number", "slug")]
+        if not fields or invalid:
+            raise NetboxCustomLookupError(
+                f"search_from must be one or more of model, part_number or slug, got {search_from!r}"
+            )
 
-        return self._device_type_from_raw(models[0], firmware_custom_field, version_custom_field)
+        for field in fields:
+            key = f"{field}__ie" if ignore_case else field
+            try:
+                models = await self._fetch_all("dcim/device-types/", {key: device_type})
+            except Exception as e:
+                raise NetboxCustomLookupError(f"get_device_type {e}")
+
+            if len(models) > 1:
+                raise NetboxCustomLookupError(f"Multiple device types found for {field} '{device_type}'!")
+            if len(models) == 1:
+                return self._device_type_from_raw(models[0], firmware_custom_field, version_custom_field)
+
+        raise NetboxCustomLookupError(f"Device type '{device_type}' not found (searched {', '.join(fields)})!")
 
     async def get_device_types(
         self,

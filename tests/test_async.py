@@ -374,6 +374,18 @@ class TestGetDeviceType:
         assert result.platform is not None
         assert result.flash is not None
 
+    async def test_invalid_search_from_raises(self, anb):
+        with pytest.raises(NetboxCustomLookupError):
+            await anb.get_device_type("x", search_from="name")
+
+    async def test_unknown_with_all_fields_and_ignore_case_raises(self, anb):
+        with pytest.raises(NetboxCustomLookupError):
+            await anb.get_device_type(
+                "MODEL-THAT-DOES-NOT-EXIST-XYZ",
+                search_from=("model", "part_number", "slug"),
+                ignore_case=True,
+            )
+
     async def test_get_device_types_returns_list(self, anb):
         result = await anb.get_device_types({"model": "MODEL-THAT-DOES-NOT-EXIST-XYZ"})
         assert result == []

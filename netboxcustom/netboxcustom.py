@@ -1,5 +1,6 @@
 import asyncio
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, Literal
 
 from .models import DeviceType, LookupSiteByIp
 from .netboxcustom_async import AsyncNetboxCustom
@@ -77,9 +78,13 @@ class NetboxCustom:
         device_type: str,
         firmware_custom_field: str = "firmware_filename",
         version_custom_field: str | None = None,
+        search_from: Literal["model", "part_number", "slug"] | Sequence[Literal["model", "part_number", "slug"]] = "model",
+        ignore_case: bool = False,
     ) -> DeviceType:
         return self._loop.run_until_complete(
-            self._async.get_device_type(device_type, firmware_custom_field, version_custom_field)
+            self._async.get_device_type(
+                device_type, firmware_custom_field, version_custom_field, search_from, ignore_case
+            )
         )
 
     def get_device_types(
