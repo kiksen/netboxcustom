@@ -358,21 +358,21 @@ assign_tenant_to_ip(nb, ip_obj, tenant_id=5)
 
 ## Firmware Functions
 
-### `lookup_firmware_by_model_type`
+### `get_device_type` / `get_device_types`
 
-Returns firmware metadata for a device type, read from a custom field and the type's default platform.
+Return `DeviceType` objects with firmware metadata, read from custom fields (`firmware_custom_field`, optional `version_custom_field`) and the type's default platform. `get_device_type(device_type)` returns exactly one; `get_device_types(api_filter)` returns all matches (types missing the firmware field get `error` set).
 
 ```python
-from netboxcustom import lookup_firmware_by_model_type
+from netboxcustom import NetboxCustom
 
-fw = lookup_firmware_by_model_type(nb, "C9500-40X")
+fw = nb.get_device_type("C9500-40X")
 # {
 #     "firmware_filename": "cat9k_iosxe.17.06.05.SPA.bin",
 #     "platform": "IOS-XE",
 #     "flash": "bootflash:"
 # }
 
-fw = lookup_firmware_by_model_type(nb, "WS-C2960X-48FPD-L")
+fw = nb.get_device_type("WS-C2960X-48FPD-L")
 # {
 #     "firmware_filename": "c2960x-universalk9-mz.152-7.E6.bin",
 #     "platform": "IOS",
@@ -501,7 +501,7 @@ async def main():
     slug = await aio.lookup_site_by_ip("10.10.10.1")
 
     # Firmware info
-    fw = await aio.lookup_firmware_by_model_type("C9500-40X")
+    fw = await aio.get_device_type("C9500-40X")
 
     # Create devices
     devices = await aio.createDevices(

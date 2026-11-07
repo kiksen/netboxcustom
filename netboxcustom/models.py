@@ -43,7 +43,7 @@ class DeviceInfo:
 @dataclass
 class DeviceType:
     """
-    Returned by lookup_firmware_by_model_type
+    Returned by get_device_type / get_device_types
     """
     device_type: str
     firmware_custom_field: str

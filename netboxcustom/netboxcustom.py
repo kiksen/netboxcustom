@@ -72,12 +72,22 @@ class NetboxCustom:
             )
         )
 
-    def lookup_firmware_by_model_type(
+    def get_device_type(
         self,
-        model_type: str,
+        device_type: str,
         firmware_custom_field: str = "firmware_filename",
         version_custom_field: str | None = None,
     ) -> DeviceType:
         return self._loop.run_until_complete(
-            self._async.lookup_firmware_by_model_type(model_type, firmware_custom_field, version_custom_field)
+            self._async.get_device_type(device_type, firmware_custom_field, version_custom_field)
+        )
+
+    def get_device_types(
+        self,
+        api_filter: dict[str, Any] | None = None,
+        firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
+    ) -> list[DeviceType]:
+        return self._loop.run_until_complete(
+            self._async.get_device_types(api_filter, firmware_custom_field, version_custom_field)
         )

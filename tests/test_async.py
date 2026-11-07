@@ -354,25 +354,29 @@ class TestLookupSiteByIp:
 
 
 # ---------------------------------------------------------------------------
-# lookup_firmware_by_model_type
+# get_device_type / get_device_types
 # ---------------------------------------------------------------------------
 
 
-class TestLookupFirmwareByModelType:
+class TestGetDeviceType:
     async def test_raises_for_unknown_model(self, anb):
         with pytest.raises(NetboxCustomLookupError):
-            await anb.lookup_firmware_by_model_type("MODEL-THAT-DOES-NOT-EXIST-XYZ")
+            await anb.get_device_type("MODEL-THAT-DOES-NOT-EXIST-XYZ")
 
     @pytest.mark.skipif(
         not os.environ.get("TEST_FIRMWARE_MODEL"),
         reason="TEST_FIRMWARE_MODEL nicht gesetzt",
     )
     async def test_returns_device_type_with_expected_fields(self, anb):
-        result = await anb.lookup_firmware_by_model_type(FIRMWARE_MODEL)
+        result = await anb.get_device_type(FIRMWARE_MODEL)
         assert isinstance(result, DeviceType)
         assert result.firmware_filename is not None
         assert result.platform is not None
         assert result.flash is not None
+
+    async def test_get_device_types_returns_list(self, anb):
+        result = await anb.get_device_types({"model": "MODEL-THAT-DOES-NOT-EXIST-XYZ"})
+        assert result == []
 
 
 # ---------------------------------------------------------------------------

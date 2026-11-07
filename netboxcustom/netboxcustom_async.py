@@ -404,41 +404,28 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
     # Firmware
     # ------------------------------------------------------------------
 
-    async def lookup_firmware_by_model_type(
-        self,
-        device_type: str,
-        firmware_custom_field: str = "firmware_filename",
-        version_custom_field: str | None = None,
+    @staticmethod
+    def _device_type_from_raw(
+        raw: dict[str, Any],
+        firmware_custom_field: str,
+        version_custom_field: str | None,
     ) -> DeviceType:
-
-        ret = DeviceType(device_type=device_type, firmware_custom_field=firmware_custom_field)
-
-        models = []
-
-        try:
-            models = await self._fetch_all("dcim/device-types/", {"model": device_type})
-        except Exception as e:
-            raise NetboxCustomLookupError(f"firmware_lookup {e}")
-
-        if len(models) == 0:
-            raise NetboxCustomLookupError(f"Device type '{device_type}' not found!")
-        if len(models) > 1:
-            raise NetboxCustomLookupError(f"Multiple device types found for model '{device_type}'!")
-
-        model = models[0]
-        cf = model.get("custom_fields", {})
+        """Build a DeviceType from a raw netbox device-type dict. Raises NetboxCustomFieldMissing."""
+        name = raw.get("model") or ""
+        ret = DeviceType(device_type=name, firmware_custom_field=firmware_custom_field)
+        cf = raw.get("custom_fields") or {}
 
         if firmware_custom_field in cf:
-            ret.firmware_filename = cf[firmware_custom_field]
+            ret.firmware_filename = cf[firmware_custom_field] or ""
         else:
-            raise NetboxCustomFieldMissing(f"Custom field 'firmware_filename' on device_type {device_type} not found!")
+            raise NetboxCustomFieldMissing(f"Custom field '{firmware_custom_field}' on device_type {name} not found!")
 
         # the version is optional - a missing or empty field is not an error
         if version_custom_field:
             ret.firmware_version = str(cf.get(version_custom_field) or "")
 
         # if default_plaform is found it might be None
-        platform_obj: dict[str, Any] | None = model.get("default_platform", None)
+        platform_obj: dict[str, Any] | None = raw.get("default_platform", None)
 
         if isinstance(platform_obj, dict):
             ret.platform = (platform_obj.get("name") or "").upper()
@@ -446,9 +433,9 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             ret.platform = ""
 
         if not ret.platform:
-            if re.match(r"(C9200|C9300|C940|WS\-C3850)", ret.device_type, flags=re.IGNORECASE):
+            if re.match(r"(C9200|C9300|C940|WS\-C3850)", name, flags=re.IGNORECASE):
                 ret.platform = "IOS-XE"
-            if re.match(r"(WS\-C2960|WS\-C3750|WS\-C6500)", ret.device_type, flags=re.IGNORECASE):
+            if re.match(r"(WS\-C2960|WS\-C3750|WS\-C6500)", name, flags=re.IGNORECASE):
                 ret.platform = "IOS"
 
         if ret.platform == "IOS-XE":
@@ -456,6 +443,54 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         elif ret.platform == "IOS":
             ret.flash = "flash:"
 
+        return ret
+
+    async def get_device_type(
+        self,
+        device_type: str,
+        firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
+    ) -> DeviceType:
+        """Look up exactly one device type by model name."""
+        try:
+            models = await self._fetch_all("dcim/device-types/", {"model": device_type})
+        except Exception as e:
+            raise NetboxCustomLookupError(f"get_device_type {e}")
+
+        if len(models) == 0:
+            raise NetboxCustomLookupError(f"Device type '{device_type}' not found!")
+        if len(models) > 1:
+            raise NetboxCustomLookupError(f"Multiple device types found for model '{device_type}'!")
+
+        return self._device_type_from_raw(models[0], firmware_custom_field, version_custom_field)
+
+    async def get_device_types(
+        self,
+        api_filter: dict[str, Any] | None = None,
+        firmware_custom_field: str = "firmware_filename",
+        version_custom_field: str | None = None,
+    ) -> list[DeviceType]:
+        """
+        Look up all device types matching api_filter (e.g. {"manufacturer": "cisco"}).
+        A device type without the firmware custom field is returned with `error` set instead of raising.
+        """
+        try:
+            models = await self._fetch_all("dcim/device-types/", api_filter or {})
+        except Exception as e:
+            raise NetboxCustomLookupError(f"get_device_types {e}")
+
+        ret: list[DeviceType] = []
+        for raw in models:
+            try:
+                ret.append(self._device_type_from_raw(raw, firmware_custom_field, version_custom_field))
+            except NetboxCustomFieldMissing as e:
+                ret.append(
+                    DeviceType(
+                        device_type=raw.get("model") or "",
+                        firmware_custom_field=firmware_custom_field,
+                        error=str(e),
+                    )
+                )
         return ret
 
     async def lookup_firmware_list(
@@ -469,7 +504,7 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
 
         for model_type in model_types:
             try:
-                r = await self.lookup_firmware_by_model_type(
+                r = await self.get_device_type(
                     model_type, firmware_custom_field, version_custom_field
                 )
                 ret.append(r)
