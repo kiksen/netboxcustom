@@ -8,6 +8,7 @@ import os
 import pytest
 
 from netboxcustom import (
+    AsyncNetboxCustom,
     NetboxCustomCreateDeviceError,
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
@@ -424,3 +425,27 @@ class TestHasObjectHelpers:
     def test_tenant_key_missing(self):
         obj = {"scope_type": str(ScopeType.SITE)}
         assert has_object_tenant(obj) is False
+
+
+class TestVirtualChassisMapping:
+    VC = {"id": 117, "name": "sw", "master": {"id": 474, "name": "sw-1"}}
+    DEVICES = [
+        {"id": 475, "name": "sw-2", "vc_position": 2, "vc_priority": None},
+        {"id": 474, "name": "sw-1", "vc_position": 1, "vc_priority": 15},
+    ]
+
+    def test_master_in_every_member(self):
+        vc = AsyncNetboxCustom._vc_from_raw(self.VC, self.DEVICES)
+        assert vc.id == 117
+        assert vc.master.id == 474
+        assert vc.master.vc_priority == 15
+        assert vc.master.device is self.DEVICES[1]
+        assert [m.id for m in vc.members] == [474, 475]
+        assert [m.vc_position for m in vc.members] == [1, 2]
+        assert all(m.master == vc.master for m in vc.members)
+        assert vc.members[1].device["name"] == "sw-2"
+
+    def test_no_master(self):
+        vc = AsyncNetboxCustom._vc_from_raw({**self.VC, "master": None}, self.DEVICES)
+        assert vc.master is None
+        assert all(m.master is None for m in vc.members)

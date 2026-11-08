@@ -2,7 +2,7 @@ import asyncio
 from collections.abc import Sequence
 from typing import Any, Literal
 
-from .models import DeviceInfo, DeviceType, LookupSiteByIp
+from .models import DeviceInfo, DeviceType, LookupSiteByIp, VirtualChassis
 from .netboxcustom_async import AsyncNetboxCustom
 
 
@@ -57,6 +57,9 @@ class NetboxCustom:
 
     def get_rendered_config_bySerial(self, serial_number: str, load_vc_master: bool = False) -> str:
         return self._loop.run_until_complete(self._async.get_rendered_config_bySerial(serial_number, load_vc_master))
+
+    def get_vc_members_by_device_id(self, device_id: int) -> VirtualChassis:
+        return self._loop.run_until_complete(self._async.get_vc_members_by_device_id(device_id))
 
     def createDevices(
         self,

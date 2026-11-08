@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
@@ -53,3 +53,34 @@ class DeviceType:
     platform: str = ""
     flash: str = ""
     error: str = ""
+
+
+@dataclass
+class VcDevice:
+    """
+    Device inside a virtual chassis. ``device`` holds the complete NetBox device object.
+    """
+    id: int
+    name: str
+    vc_position: int | None = None
+    vc_priority: int | None = None
+    device: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
+class VcMember(VcDevice):
+    """
+    Member of a virtual chassis, includes the VC master
+    """
+    master: VcDevice | None = None
+
+
+@dataclass
+class VirtualChassis:
+    """
+    Returned by get_vc_members_by_device_id
+    """
+    id: int
+    name: str
+    master: VcDevice | None = None
+    members: list[VcMember] = field(default_factory=list)

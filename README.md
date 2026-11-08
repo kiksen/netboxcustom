@@ -59,7 +59,7 @@ Both clients must be used as a context manager. The sync client keeps one event 
 |---|---|
 | `netboxcustom.NetboxCustom` | Synchronous client |
 | `netboxcustom.AsyncNetboxCustom` | Asynchronous client |
-| `netboxcustom.models` | `DeviceInfo`, `DeviceType`, `LookupSiteByIp`, `ScopeType` |
+| `netboxcustom.models` | `DeviceInfo`, `DeviceType`, `LookupSiteByIp`, `ScopeType`, `VirtualChassis`, `VcMember`, `VcDevice` |
 | `netboxcustom.helper` | `build_stack_hostname`, `has_object_tenant`, `has_object_scope` |
 | `netboxcustom.iosparser` | Cisco IOS/IOS-XE `show version` / hostname parser |
 | `netboxcustom.exceptions` | All exception classes (also exported from `netboxcustom`) |
@@ -89,6 +89,7 @@ All methods exist on both clients. On the async client they are coroutines (`awa
 | `lookup_site_by_ip` / `lookup_site_by_ip_full` | Site slug of the most specific prefix containing an IP |
 | `device_exists_bySerial` | Find a device by serial number |
 | `get_rendered_config_bySerial` | Rendered config of a device |
+| `get_vc_members_by_device_id` | Virtual Chassis (master + members) of a device |
 | `createDevices` / `createDevicesFromModels` | Create devices, optionally as Virtual Chassis |
 | `get_device_type` / `get_device_types` / `get_device_types_by_names` | Device types with firmware metadata |
 
@@ -260,6 +261,22 @@ config = await nb.get_rendered_config_bySerial("FCW2233FFG3", load_vc_master=Tru
 **Raises:**
 - `NetboxCustomNotFoundError` — device not found
 - `NetboxCustomLookupError` — render failed, no content, or the VC has no master
+
+---
+
+### `get_vc_members_by_device_id`
+
+Returns the Virtual Chassis of a device (by NetBox device ID) as a `VirtualChassis` with `id`, `name`, `master` and `members`. Every `VcMember` (`id`, `name`, `vc_position`, `vc_priority`, `device`, `master`) also carries the VC master. `device` is the complete NetBox device object (dict); master and members are `VcDevice`/`VcMember` with the same fields.
+
+```python
+vc = await nb.get_vc_members_by_device_id(474)
+vc.master.name                      # "switch-FOC-B-Horn-1"
+[m.name for m in vc.members]        # ["switch-FOC-B-Horn-1", "switch-FOC-B-Horn-2"]
+```
+
+**Raises:**
+- `NetboxCustomNotFoundError` — device not found or not part of a Virtual Chassis
+- `NetboxCustomLookupError` — API request failed
 
 ---
 

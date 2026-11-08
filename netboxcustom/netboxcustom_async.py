@@ -15,7 +15,7 @@ from .exceptions import (
     NetboxScopeTypeNotFound,
 )
 from .helper import build_stack_hostname, has_object_scope
-from .models import DeviceInfo, DeviceType, LookupSiteByIp, ScopeType
+from .models import DeviceInfo, DeviceType, LookupSiteByIp, ScopeType, VcDevice, VcMember, VirtualChassis
 
 
 class AsyncNetboxCustom(AsyncNetboxRestClient):
@@ -244,6 +244,61 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
             return data["content"]
         else:
             raise NetboxCustomLookupError("No content found in netbox answer [get_rendered_config_bySerial]")
+
+    @staticmethod
+    def _vc_device(raw: dict[str, Any]) -> VcDevice:
+        return VcDevice(
+            id=raw["id"],
+            name=raw["name"],
+            vc_position=raw.get("vc_position"),
+            vc_priority=raw.get("vc_priority"),
+            device=raw,
+        )
+
+    @staticmethod
+    def _vc_from_raw(vc: dict[str, Any], devices: list[dict[str, Any]]) -> VirtualChassis:
+        """
+        Maps the brief virtual_chassis object of a device plus the full member devices to VirtualChassis.
+        Every member carries the VC master.
+        """
+        by_id = {d["id"]: d for d in devices}
+        raw_master = vc.get("master")
+        master = None
+        if raw_master:
+            master = AsyncNetboxCustom._vc_device(by_id.get(raw_master["id"], raw_master))
+        members = [
+            VcMember(**vars(AsyncNetboxCustom._vc_device(d)), master=master)
+            for d in sorted(devices, key=lambda d: (d.get("vc_position") is None, d.get("vc_position")))
+        ]
+        return VirtualChassis(id=vc["id"], name=vc["name"], master=master, members=members)
+
+    async def get_vc_members_by_device_id(self, device_id: int) -> VirtualChassis:
+        """
+        Lädt das Virtual Chassis des Devices mit der angegebenen ID inklusive VC-Master
+        und Member-Liste. Jeder Member enthält den VC-Master, Position, Priorität und das
+        komplette Device-Objekt.
+
+        Raises:
+            NetboxCustomNotFoundError: Device nicht gefunden oder nicht Teil eines Virtual Chassis.
+            NetboxCustomLookupError: Fehler bei der Abfrage.
+        """
+        try:
+            devices = await self._fetch_all("dcim/devices/", {"id": device_id})
+        except Exception as e:
+            raise NetboxCustomLookupError(f"[get_vc_members_by_device_id] {e}")
+        if len(devices) == 0:
+            raise NetboxCustomNotFoundError(f"Device id {device_id} not found in Netbox!")
+
+        vc = devices[0].get("virtual_chassis")
+        if not vc:
+            raise NetboxCustomNotFoundError(f"Device id {device_id} is not part of a virtual chassis!")
+
+        try:
+            members = await self._fetch_all("dcim/devices/", {"virtual_chassis_id": vc["id"]})
+        except Exception as e:
+            raise NetboxCustomLookupError(f"[get_vc_members_by_device_id] {e}")
+
+        return self._vc_from_raw(vc, members)
 
     async def createDevices(
         self,
