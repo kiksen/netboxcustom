@@ -13,6 +13,7 @@ from netboxcustom import (
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
 )
+from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 from netboxcustom.helper import has_object_scope, has_object_tenant
 from netboxcustom.models import DeviceInfo, DeviceType, ScopeType
 
@@ -360,6 +361,30 @@ class TestLookupSiteByIp:
 
 
 class TestGetDeviceType:
+    @pytest.mark.parametrize(
+        ("firmware", "version", "expected_firmware", "expected_version"),
+        [
+            ("image.bin", "17.9", "image.bin", "17.9"),
+            ({"value": "image.bin", "label": "Image"}, {"value": "17.9"}, "image.bin", "17.9"),
+            ({"label": "Image"}, {"value": None}, "", ""),
+            ({"value": ""}, {}, "", ""),
+        ],
+    )
+    def test_custom_field_values_are_strings(self, firmware, version, expected_firmware, expected_version):
+        result = AsyncNetboxCustom._device_type_from_raw(
+            {
+                "model": "MODEL",
+                "custom_fields": {"firmware": firmware, "version": version},
+            },
+            "firmware",
+            "version",
+        )
+
+        assert result.firmware_filename == expected_firmware
+        assert result.firmware_version == expected_version
+        assert isinstance(result.firmware_filename, str)
+        assert isinstance(result.firmware_version, str)
+
     async def test_raises_for_unknown_model(self, anb):
         with pytest.raises(NetboxCustomLookupError):
             await anb.get_device_type("MODEL-THAT-DOES-NOT-EXIST-XYZ")

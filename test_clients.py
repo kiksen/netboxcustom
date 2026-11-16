@@ -7,7 +7,7 @@ from netboxcustom.netboxcustom_async import AsyncNetboxCustom
 
 async def main():
     NETBOX_TOKEN = os.environ.get("NETBOX_TOKEN", "")
-    NETBOX_ENDPOINT = os.environ.get("NETBOX_ENDPOINT", "")
+    NETBOX_ENDPOINT = os.environ.get("NETBOX_API", "")
 
     device_info_list = [
         {
@@ -30,11 +30,11 @@ async def main():
         #sites = await nb.get_site_list(params={ "limit":3 })
 
         #await nb.createDevices(        device_info_list,        site_slug="bonn",        role_slug="access", default_device_names=["switch","max"]        )
-        config = await nb.get_rendered_config_bySerial("FOC-C-Horn", load_vc_master=True)
+        config = await nb.get_device_types(api_filter={"manufacturer" : "cisco"},firmware_custom_field="firmware_filename",version_custom_field="firmware_version")
 
 
         print(config)
-        print("Cont interface: ",  len(re.findall("interface ", config))    )    
+        #print("Cont interface: ",  len(re.findall("interface ", config))    )    
         pass
 
 

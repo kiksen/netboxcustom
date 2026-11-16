@@ -471,14 +471,19 @@ class AsyncNetboxCustom(AsyncNetboxRestClient):
         ret = DeviceType(device_type=name, firmware_custom_field=firmware_custom_field)
         cf = raw.get("custom_fields") or {}
 
+        def custom_field_string(value: Any) -> str:
+            if isinstance(value, dict):
+                value = value.get("value")
+            return str(value or "")
+
         if firmware_custom_field in cf:
-            ret.firmware_filename = cf[firmware_custom_field] or ""
+            ret.firmware_filename = custom_field_string(cf[firmware_custom_field])
         else:
             raise NetboxCustomFieldMissing(f"Custom field '{firmware_custom_field}' on device_type {name} not found!")
 
         # the version is optional - a missing or empty field is not an error
         if version_custom_field:
-            ret.firmware_version = str(cf.get(version_custom_field) or "")
+            ret.firmware_version = custom_field_string(cf.get(version_custom_field))
 
         # if default_plaform is found it might be None
         platform_obj: dict[str, Any] | None = raw.get("default_platform", None)

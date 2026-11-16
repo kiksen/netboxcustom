@@ -288,8 +288,8 @@ Device types are returned as `DeviceType` dataclasses, built from a custom field
 |---|---|
 | `device_type` | Model name |
 | `firmware_custom_field` | Name of the custom field that was read |
-| `firmware_filename` | Value of that custom field |
-| `firmware_version` | Value of `version_custom_field` (empty if not requested or not set) |
+| `firmware_filename` | String value of that custom field; for dict values, the `value` entry is used |
+| `firmware_version` | String value of `version_custom_field` (empty if not requested or not set); for dict values, the `value` entry is used |
 | `platform` | Default platform name, uppercased (`"IOS-XE"`, `"IOS"`); guessed from the model for C9200/C9300/C940/WS-C3850 (IOS-XE) and WS-C2960/3750/6500 (IOS) if unset |
 | `flash` | `"bootflash:"` (IOS-XE) or `"flash:"` (IOS) |
 | `error` | Error message, set only by `get_device_types` / `get_device_types_by_names` |
