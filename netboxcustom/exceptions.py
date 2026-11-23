@@ -89,3 +89,16 @@ class NetboxCustomConnectionError(NetboxCustomBase):
         super().__init__(f"{message}")
         # no http status code when no connection is possible
         self.status_code = 0
+
+
+class NetboxCustomHttpError(NetboxCustomConnectionError):
+    """
+    NetBox answered with an error status (4xx or 5xx). Subclass of
+    NetboxCustomConnectionError so that existing handlers keep working.
+    """
+
+    def __init__(self, status_code: int, url: str, response_body: str):
+        self.url = url
+        self.response_body = response_body
+        super().__init__(f"NetBox returned {status_code} for {url}: {response_body}")
+        self.status_code = status_code

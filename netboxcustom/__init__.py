@@ -5,6 +5,7 @@ from .exceptions import (
     NetboxCustomCreateVirtualChassisError,
     NetboxCustomFieldMissing,
     NetboxCustomGeneralError,
+    NetboxCustomHttpError,
     NetboxCustomLookupError,
     NetboxCustomNotFoundError,
     NetboxScopeTypeNotFound,

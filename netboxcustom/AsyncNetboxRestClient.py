@@ -3,7 +3,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx2
 
-from .exceptions import NetboxCustomConnectionError, NetboxCustomGeneralError
+from .exceptions import NetboxCustomConnectionError, NetboxCustomGeneralError, NetboxCustomHttpError
 
 
 class AsyncNetboxRestClient:
@@ -99,7 +99,10 @@ class AsyncNetboxRestClient:
             try:
                 resp.raise_for_status()
             except httpx2.HTTPStatusError as e:
-                raise NetboxCustomConnectionError(message=str(e))
+                # the body holds the reason netbox rejected the request
+                raise NetboxCustomHttpError(
+                    e.response.status_code, str(e.request.url), e.response.text[:500]
+                )
 
             data = resp.json()
             results.extend(data.get("results", []))
@@ -119,7 +122,12 @@ class AsyncNetboxRestClient:
         except httpx2.TransportError as e:
             raise NetboxCustomConnectionError(message=str(e))
 
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except httpx2.HTTPStatusError as e:
+            raise NetboxCustomHttpError(
+                e.response.status_code, str(e.request.url), e.response.text[:500]
+            )
 
     async def _patch(self, path: str, json: dict | None = None) -> httpx2.Response:
         client = self._get_client()

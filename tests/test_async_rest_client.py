@@ -2,7 +2,7 @@ import httpx2
 import pytest
 
 from netboxcustom.AsyncNetboxRestClient import AsyncNetboxRestClient
-from netboxcustom.exceptions import NetboxCustomGeneralError
+from netboxcustom.exceptions import NetboxCustomConnectionError, NetboxCustomGeneralError, NetboxCustomHttpError
 
 
 async def _close(client: AsyncNetboxRestClient) -> None:
@@ -85,5 +85,23 @@ async def test_fetch_all_rejects_repeated_next_url() -> None:
     try:
         with pytest.raises(NetboxCustomGeneralError, match="pagination loop"):
             await client._fetch_all("dcim/sites/")
+    finally:
+        await _close(client)
+
+
+async def test_fetch_all_error_contains_netbox_response_body() -> None:
+    body = {"role": ["Select a valid choice. accessx is not one of the available choices."]}
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        return httpx2.Response(400, json=body)
+
+    client = AsyncNetboxRestClient("https://netbox.example", "token")
+    client._client = httpx2.AsyncClient(base_url="https://netbox.example", transport=httpx2.MockTransport(handler))
+    try:
+        with pytest.raises(NetboxCustomHttpError, match="accessx is not one of the available choices") as exc:
+            await client._fetch_all("ipam/prefixes/", {"role": "accessx"})
+        assert exc.value.status_code == 400
+        assert "role=accessx" in exc.value.url
+        assert isinstance(exc.value, NetboxCustomConnectionError)
     finally:
         await _close(client)
